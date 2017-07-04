@@ -1,0 +1,1241 @@
+<!doctype html>
+<html>
+<head>
+<title>utils.c</title>
+<style type="text/css">
+ body { color:#000000; background-color:#ffffff }
+ body { font-family:Helvetica, sans-serif; font-size:10pt }
+ h1 { font-size:14pt }
+ .code { border-collapse:collapse; width:100%; }
+ .code { font-family: "Monospace", monospace; font-size:10pt }
+ .code { line-height: 1.2em }
+ .comment { color: green; font-style: oblique }
+ .keyword { color: blue }
+ .string_literal { color: red }
+ .directive { color: darkmagenta }
+ .expansion { display: none; }
+ .macro:hover .expansion { display: block; border: 2px solid #FF0000; padding: 2px; background-color:#FFF0F0; font-weight: normal;   -webkit-border-radius:5px;  -webkit-box-shadow:1px 1px 7px #000; position: absolute; top: -1em; left:10em; z-index: 1 } 
+ .macro { color: darkmagenta; background-color:LemonChiffon; position: relative }
+ .num { width:2.5em; padding-right:2ex; background-color:#eeeeee }
+ .num { text-align:right; font-size:8pt }
+ .num { color:#444444 }
+ .line { padding-left: 1ex; border-left: 3px solid #ccc }
+ .line { white-space: pre }
+ .msg { -webkit-box-shadow:1px 1px 7px #000 }
+ .msg { -webkit-border-radius:5px }
+ .msg { font-family:Helvetica, sans-serif; font-size:8pt }
+ .msg { float:left }
+ .msg { padding:0.25em 1ex 0.25em 1ex }
+ .msg { margin-top:10px; margin-bottom:10px }
+ .msg { font-weight:bold }
+ .msg { max-width:60em; word-wrap: break-word; white-space: pre-wrap }
+ .msgT { padding:0x; spacing:0x }
+ .msgEvent { background-color:#fff8b4; color:#000000 }
+ .msgControl { background-color:#bbbbbb; color:#000000 }
+ .mrange { background-color:#dfddf3 }
+ .mrange { border-bottom:1px solid #6F9DBE }
+ .PathIndex { font-weight: bold; padding:0px 5px; margin-right:5px; }
+ .PathIndex { -webkit-border-radius:8px }
+ .PathIndexEvent { background-color:#bfba87 }
+ .PathIndexControl { background-color:#8c8c8c }
+ .PathNav a { text-decoration:none; font-size: larger }
+ .CodeInsertionHint { font-weight: bold; background-color: #10dd10 }
+ .CodeRemovalHint { background-color:#de1010 }
+ .CodeRemovalHint { border-bottom:1px solid #6F9DBE }
+ table.simpletable {
+   padding: 5px;
+   font-size:12pt;
+   margin:20px;
+   border-collapse: collapse; border-spacing: 0px;
+ }
+ td.rowname {
+   text-align:right; font-weight:bold; color:#444444;
+   padding-right:2ex; }
+</style>
+</head>
+<body>
+<!-- BUGDESC String copy function overflows destination buffer -->
+
+<!-- BUGTYPE Out-of-bound array access -->
+
+<!-- BUGCATEGORY Logic error -->
+
+<!-- BUGFILE /home/scuser/dev/old_wine/wine-1.7.17/tools/winebuild/utils.c -->
+
+<!-- BUGLINE 496 -->
+
+<!-- BUGCOLUMN 9 -->
+
+<!-- BUGPATHLENGTH 10 -->
+
+<!-- BUGMETAEND -->
+<!-- REPORTHEADER -->
+<h3>Bug Summary</h3>
+<table class="simpletable">
+<tr><td class="rowname">File:</td><td>tools/winebuild/utils.c</td></tr>
+<tr><td class="rowname">Location:</td><td><a href="#EndPath">line 496, column 9</a></td></tr>
+<tr><td class="rowname">Description:</td><td>String copy function overflows destination buffer</td></tr>
+</table>
+<!-- REPORTSUMMARYEXTRA -->
+<h3>Annotated Source Code</h3>
+<table class="code">
+<tr><td class="num" id="LN1">1</td><td class="line"><span class='comment'>/*</span></td></tr>
+<tr><td class="num" id="LN2">2</td><td class="line"> <span class='comment'>* Small utility functions for winebuild</span></td></tr>
+<tr><td class="num" id="LN3">3</td><td class="line"> <span class='comment'>*</span></td></tr>
+<tr><td class="num" id="LN4">4</td><td class="line"> <span class='comment'>* Copyright 2000 Alexandre Julliard</span></td></tr>
+<tr><td class="num" id="LN5">5</td><td class="line"> <span class='comment'>*</span></td></tr>
+<tr><td class="num" id="LN6">6</td><td class="line"> <span class='comment'>* This library is free software; you can redistribute it and/or</span></td></tr>
+<tr><td class="num" id="LN7">7</td><td class="line"> <span class='comment'>* modify it under the terms of the GNU Lesser General Public</span></td></tr>
+<tr><td class="num" id="LN8">8</td><td class="line"> <span class='comment'>* License as published by the Free Software Foundation; either</span></td></tr>
+<tr><td class="num" id="LN9">9</td><td class="line"> <span class='comment'>* version 2.1 of the License, or (at your option) any later version.</span></td></tr>
+<tr><td class="num" id="LN10">10</td><td class="line"> <span class='comment'>*</span></td></tr>
+<tr><td class="num" id="LN11">11</td><td class="line"> <span class='comment'>* This library is distributed in the hope that it will be useful,</span></td></tr>
+<tr><td class="num" id="LN12">12</td><td class="line"> <span class='comment'>* but WITHOUT ANY WARRANTY; without even the implied warranty of</span></td></tr>
+<tr><td class="num" id="LN13">13</td><td class="line"> <span class='comment'>* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU</span></td></tr>
+<tr><td class="num" id="LN14">14</td><td class="line"> <span class='comment'>* Lesser General Public License for more details.</span></td></tr>
+<tr><td class="num" id="LN15">15</td><td class="line"> <span class='comment'>*</span></td></tr>
+<tr><td class="num" id="LN16">16</td><td class="line"> <span class='comment'>* You should have received a copy of the GNU Lesser General Public</span></td></tr>
+<tr><td class="num" id="LN17">17</td><td class="line"> <span class='comment'>* License along with this library; if not, write to the Free Software</span></td></tr>
+<tr><td class="num" id="LN18">18</td><td class="line"> <span class='comment'>* Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA</span></td></tr>
+<tr><td class="num" id="LN19">19</td><td class="line"> <span class='comment'>*/</span></td></tr>
+<tr><td class="num" id="LN20">20</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN21">21</td><td class="line"><span class='directive'>#include "config.h"</span></td></tr>
+<tr><td class="num" id="LN22">22</td><td class="line"><span class='directive'>#include "wine/port.h"</span></td></tr>
+<tr><td class="num" id="LN23">23</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN24">24</td><td class="line"><span class='directive'>#include &lt;assert.h&gt;</span></td></tr>
+<tr><td class="num" id="LN25">25</td><td class="line"><span class='directive'>#include &lt;ctype.h&gt;</span></td></tr>
+<tr><td class="num" id="LN26">26</td><td class="line"><span class='directive'>#include &lt;stdarg.h&gt;</span></td></tr>
+<tr><td class="num" id="LN27">27</td><td class="line"><span class='directive'>#include &lt;stdio.h&gt;</span></td></tr>
+<tr><td class="num" id="LN28">28</td><td class="line"><span class='directive'>#include &lt;stdlib.h&gt;</span></td></tr>
+<tr><td class="num" id="LN29">29</td><td class="line"><span class='directive'>#include &lt;string.h&gt;</span></td></tr>
+<tr><td class="num" id="LN30">30</td><td class="line"><span class='directive'>#ifdef <span class='macro'>HAVE_UNISTD_H<span class='expansion'>1</span></span></span></td></tr>
+<tr><td class="num" id="LN31">31</td><td class="line"><span class='directive'># include &lt;unistd.h&gt;</span></td></tr>
+<tr><td class="num" id="LN32">32</td><td class="line"><span class='directive'>#endif</span></td></tr>
+<tr><td class="num" id="LN33">33</td><td class="line"><span class='directive'>#ifdef <span class='macro'>HAVE_SYS_STAT_H<span class='expansion'>1</span></span></span></td></tr>
+<tr><td class="num" id="LN34">34</td><td class="line"><span class='directive'># include &lt;sys/stat.h&gt;</span></td></tr>
+<tr><td class="num" id="LN35">35</td><td class="line"><span class='directive'>#endif</span></td></tr>
+<tr><td class="num" id="LN36">36</td><td class="line"><span class='directive'>#ifdef <span class='macro'>HAVE_SYS_MMAN_H<span class='expansion'>1</span></span></span></td></tr>
+<tr><td class="num" id="LN37">37</td><td class="line"><span class='directive'>#include &lt;sys/mman.h&gt;</span></td></tr>
+<tr><td class="num" id="LN38">38</td><td class="line"><span class='directive'>#endif</span></td></tr>
+<tr><td class="num" id="LN39">39</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN40">40</td><td class="line"><span class='directive'>#include "build.h"</span></td></tr>
+<tr><td class="num" id="LN41">41</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN42">42</td><td class="line"><span class='directive'>#if defined(_WIN32) &amp;&amp; !defined(__CYGWIN__)</span></td></tr>
+<tr><td class="num" id="LN43">43</td><td class="line"><span class='directive'># define <span class='macro'>PATH_SEPARATOR<span class='expansion'>':'</span></span> ';'</span></td></tr>
+<tr><td class="num" id="LN44">44</td><td class="line"><span class='directive'>#else</span></td></tr>
+<tr><td class="num" id="LN45">45</td><td class="line"><span class='directive'># define <span class='macro'>PATH_SEPARATOR<span class='expansion'>':'</span></span> ':'</span></td></tr>
+<tr><td class="num" id="LN46">46</td><td class="line"><span class='directive'>#endif</span></td></tr>
+<tr><td class="num" id="LN47">47</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN48">48</td><td class="line"><span class='keyword'>static</span> <span class='keyword'>const</span> <span class='keyword'>char</span> **tmp_files;</td></tr>
+<tr><td class="num" id="LN49">49</td><td class="line"><span class='keyword'>static</span> <span class='keyword'>unsigned</span> <span class='keyword'>int</span> nb_tmp_files;</td></tr>
+<tr><td class="num" id="LN50">50</td><td class="line"><span class='keyword'>static</span> <span class='keyword'>unsigned</span> <span class='keyword'>int</span> max_tmp_files;</td></tr>
+<tr><td class="num" id="LN51">51</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN52">52</td><td class="line"><span class='keyword'>static</span> <span class='keyword'>const</span> <span class='keyword'>struct</span></td></tr>
+<tr><td class="num" id="LN53">53</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN54">54</td><td class="line">    <span class='keyword'>const</span> <span class='keyword'>char</span> *name;</td></tr>
+<tr><td class="num" id="LN55">55</td><td class="line">    <span class='keyword'>enum</span> target_cpu cpu;</td></tr>
+<tr><td class="num" id="LN56">56</td><td class="line">} cpu_names[] =</td></tr>
+<tr><td class="num" id="LN57">57</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN58">58</td><td class="line">    { <span class='string_literal'>"i386"</span>,    CPU_x86 },</td></tr>
+<tr><td class="num" id="LN59">59</td><td class="line">    { <span class='string_literal'>"i486"</span>,    CPU_x86 },</td></tr>
+<tr><td class="num" id="LN60">60</td><td class="line">    { <span class='string_literal'>"i586"</span>,    CPU_x86 },</td></tr>
+<tr><td class="num" id="LN61">61</td><td class="line">    { <span class='string_literal'>"i686"</span>,    CPU_x86 },</td></tr>
+<tr><td class="num" id="LN62">62</td><td class="line">    { <span class='string_literal'>"i786"</span>,    CPU_x86 },</td></tr>
+<tr><td class="num" id="LN63">63</td><td class="line">    { <span class='string_literal'>"amd64"</span>,   CPU_x86_64 },</td></tr>
+<tr><td class="num" id="LN64">64</td><td class="line">    { <span class='string_literal'>"x86_64"</span>,  CPU_x86_64 },</td></tr>
+<tr><td class="num" id="LN65">65</td><td class="line">    { <span class='string_literal'>"powerpc"</span>, CPU_POWERPC },</td></tr>
+<tr><td class="num" id="LN66">66</td><td class="line">    { <span class='string_literal'>"arm"</span>,     CPU_ARM },</td></tr>
+<tr><td class="num" id="LN67">67</td><td class="line">    { <span class='string_literal'>"arm64"</span>,   CPU_ARM64 },</td></tr>
+<tr><td class="num" id="LN68">68</td><td class="line">    { <span class='string_literal'>"aarch64"</span>, CPU_ARM64 },</td></tr>
+<tr><td class="num" id="LN69">69</td><td class="line">};</td></tr>
+<tr><td class="num" id="LN70">70</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN71">71</td><td class="line"><span class='comment'>/* atexit handler to clean tmp files */</span></td></tr>
+<tr><td class="num" id="LN72">72</td><td class="line"><span class='keyword'>void</span> cleanup_tmp_files(<span class='keyword'>void</span>)</td></tr>
+<tr><td class="num" id="LN73">73</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN74">74</td><td class="line">    <span class='keyword'>unsigned</span> <span class='keyword'>int</span> i;</td></tr>
+<tr><td class="num" id="LN75">75</td><td class="line">    <span class='keyword'>for</span> (i = 0; i &lt; nb_tmp_files; i++) <span class='keyword'>if</span> (tmp_files[i]) unlink( tmp_files[i] );</td></tr>
+<tr><td class="num" id="LN76">76</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN77">77</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN78">78</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN79">79</td><td class="line"><span class='keyword'>void</span> *xmalloc (size_t size)</td></tr>
+<tr><td class="num" id="LN80">80</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN81">81</td><td class="line">    <span class='keyword'>void</span> *res;</td></tr>
+<tr><td class="num" id="LN82">82</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN83">83</td><td class="line">    res = malloc (size ? size : 1);</td></tr>
+<tr><td class="num" id="LN84">84</td><td class="line">    <span class='keyword'>if</span> (res == <span class='macro'>NULL<span class='expansion'>((void*)0)</span></span>)</td></tr>
+<tr><td class="num" id="LN85">85</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN86">86</td><td class="line">        fprintf (<span class='macro'>stderr<span class='expansion'>stderr</span></span>, <span class='string_literal'>"Virtual memory exhausted.\n"</span>);</td></tr>
+<tr><td class="num" id="LN87">87</td><td class="line">        exit (1);</td></tr>
+<tr><td class="num" id="LN88">88</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN89">89</td><td class="line">    <span class='keyword'>return</span> res;</td></tr>
+<tr><td class="num" id="LN90">90</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN91">91</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN92">92</td><td class="line"><span class='keyword'>void</span> *xrealloc (<span class='keyword'>void</span> *ptr, size_t size)</td></tr>
+<tr><td class="num" id="LN93">93</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN94">94</td><td class="line">    <span class='keyword'>void</span> *res = realloc (ptr, size);</td></tr>
+<tr><td class="num" id="LN95">95</td><td class="line">    <span class='keyword'>if</span> (size &amp;&amp; res == <span class='macro'>NULL<span class='expansion'>((void*)0)</span></span>)</td></tr>
+<tr><td class="num" id="LN96">96</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN97">97</td><td class="line">        fprintf (<span class='macro'>stderr<span class='expansion'>stderr</span></span>, <span class='string_literal'>"Virtual memory exhausted.\n"</span>);</td></tr>
+<tr><td class="num" id="LN98">98</td><td class="line">        exit (1);</td></tr>
+<tr><td class="num" id="LN99">99</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN100">100</td><td class="line">    <span class='keyword'>return</span> res;</td></tr>
+<tr><td class="num" id="LN101">101</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN102">102</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN103">103</td><td class="line"><span class='keyword'>char</span> *xstrdup( <span class='keyword'>const</span> <span class='keyword'>char</span> *str )</td></tr>
+<tr><td class="num" id="LN104">104</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN105">105</td><td class="line">    <span class='keyword'>char</span> *res = <span class='macro'>strdup( str )<span class='expansion'>(__extension__ (__builtin_constant_p (str) &amp;&amp; ((size_t<br>)(const void *)((str) + 1) - (size_t)(const void *)(str) == 1<br>) ? (((const char *) (str))[0] == '\0' ? (char *) calloc ((size_t<br>) 1, (size_t) 1) : ({ size_t __len = strlen (str) + 1; char *<br>__retval = (char *) malloc (__len); if (__retval != ((void*)0<br>)) __retval = (char *) memcpy (__retval, str, __len); __retval<br>; })) : __strdup (str)))</span></span>;</td></tr>
+<tr><td class="num" id="LN106">106</td><td class="line">    <span class='keyword'>if</span> (!res)</td></tr>
+<tr><td class="num" id="LN107">107</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN108">108</td><td class="line">        fprintf (<span class='macro'>stderr<span class='expansion'>stderr</span></span>, <span class='string_literal'>"Virtual memory exhausted.\n"</span>);</td></tr>
+<tr><td class="num" id="LN109">109</td><td class="line">        exit (1);</td></tr>
+<tr><td class="num" id="LN110">110</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN111">111</td><td class="line">    <span class='keyword'>return</span> res;</td></tr>
+<tr><td class="num" id="LN112">112</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN113">113</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN114">114</td><td class="line"><span class='keyword'>char</span> *strupper(<span class='keyword'>char</span> *s)</td></tr>
+<tr><td class="num" id="LN115">115</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN116">116</td><td class="line">    <span class='keyword'>char</span> *p;</td></tr>
+<tr><td class="num" id="LN117">117</td><td class="line">    <span class='keyword'>for</span> (p = s; *p; p++) *p = <span class='macro'>toupper(*p)<span class='expansion'>(__extension__ ({ int __res; if (sizeof (*p) &gt; 1) { if (__builtin_constant_p<br> (*p)) { int __c = (*p); __res = __c &lt; -128 || __c &gt; 255<br> ? __c : (*__ctype_toupper_loc ())[__c]; } else __res = toupper<br> (*p); } else __res = (*__ctype_toupper_loc ())[(int) (*p)]; __res<br>; }))</span></span>;</td></tr>
+<tr><td class="num" id="LN118">118</td><td class="line">    <span class='keyword'>return</span> s;</td></tr>
+<tr><td class="num" id="LN119">119</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN120">120</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN121">121</td><td class="line"><span class='keyword'>int</span> strendswith(<span class='keyword'>const</span> <span class='keyword'>char</span>* str, <span class='keyword'>const</span> <span class='keyword'>char</span>* end)</td></tr>
+<tr><td class="num" id="LN122">122</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN123">123</td><td class="line">    <span class='keyword'>int</span> l = strlen(str);</td></tr>
+<tr><td class="num" id="LN124">124</td><td class="line">    <span class='keyword'>int</span> m = strlen(end);</td></tr>
+<tr><td class="num" id="LN125">125</td><td class="line">    <span class='keyword'>return</span> l &gt;= m &amp;&amp; <span class='macro'>strcmp(str + l - m, end)<span class='expansion'>__extension__ ({ size_t __s1_len, __s2_len; (__builtin_constant_p<br> (str + l - m) &amp;&amp; __builtin_constant_p (end) &amp;&amp;<br> (__s1_len = strlen (str + l - m), __s2_len = strlen (end), (<br>!((size_t)(const void *)((str + l - m) + 1) - (size_t)(const void<br> *)(str + l - m) == 1) || __s1_len &gt;= 4) &amp;&amp; (!((size_t<br>)(const void *)((end) + 1) - (size_t)(const void *)(end) == 1<br>) || __s2_len &gt;= 4)) ? __builtin_strcmp (str + l - m, end)<br> : (__builtin_constant_p (str + l - m) &amp;&amp; ((size_t)(const<br> void *)((str + l - m) + 1) - (size_t)(const void *)(str + l -<br> m) == 1) &amp;&amp; (__s1_len = strlen (str + l - m), __s1_len<br> &lt; 4) ? (__builtin_constant_p (end) &amp;&amp; ((size_t)(const<br> void *)((end) + 1) - (size_t)(const void *)(end) == 1) ? __builtin_strcmp<br> (str + l - m, end) : (__extension__ ({ const unsigned char *<br>__s2 = (const unsigned char *) (const char *) (end); register<br> int __result = (((const unsigned char *) (const char *) (str<br> + l - m))[0] - __s2[0]); if (__s1_len &gt; 0 &amp;&amp; __result<br> == 0) { __result = (((const unsigned char *) (const char *) (<br>str + l - m))[1] - __s2[1]); if (__s1_len &gt; 1 &amp;&amp; __result<br> == 0) { __result = (((const unsigned char *) (const char *) (<br>str + l - m))[2] - __s2[2]); if (__s1_len &gt; 2 &amp;&amp; __result<br> == 0) __result = (((const unsigned char *) (const char *) (str<br> + l - m))[3] - __s2[3]); } } __result; }))) : (__builtin_constant_p<br> (end) &amp;&amp; ((size_t)(const void *)((end) + 1) - (size_t<br>)(const void *)(end) == 1) &amp;&amp; (__s2_len = strlen (end<br>), __s2_len &lt; 4) ? (__builtin_constant_p (str + l - m) &amp;&amp;<br> ((size_t)(const void *)((str + l - m) + 1) - (size_t)(const void<br> *)(str + l - m) == 1) ? __builtin_strcmp (str + l - m, end) :<br> (__extension__ ({ const unsigned char *__s1 = (const unsigned<br> char *) (const char *) (str + l - m); register int __result =<br> __s1[0] - ((const unsigned char *) (const char *) (end))[0];<br> if (__s2_len &gt; 0 &amp;&amp; __result == 0) { __result = (<br>__s1[1] - ((const unsigned char *) (const char *) (end))[1]);<br> if (__s2_len &gt; 1 &amp;&amp; __result == 0) { __result = (<br>__s1[2] - ((const unsigned char *) (const char *) (end))[2]);<br> if (__s2_len &gt; 2 &amp;&amp; __result == 0) __result = (__s1<br>[3] - ((const unsigned char *) (const char *) (end))[3]); } }<br> __result; }))) : __builtin_strcmp (str + l - m, end)))); })</span></span> == 0;</td></tr>
+<tr><td class="num" id="LN126">126</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN127">127</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN128">128</td><td class="line"><span class='keyword'>char</span> *strmake( <span class='keyword'>const</span> <span class='keyword'>char</span>* fmt, ... )</td></tr>
+<tr><td class="num" id="LN129">129</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN130">130</td><td class="line">    <span class='keyword'>int</span> n;</td></tr>
+<tr><td class="num" id="LN131">131</td><td class="line">    size_t size = 100;</td></tr>
+<tr><td class="num" id="LN132">132</td><td class="line">    va_list ap;</td></tr>
+<tr><td class="num" id="LN133">133</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN134">134</td><td class="line">    <span class='keyword'>for</span> (;;)</td></tr>
+<tr><td class="num" id="LN135">135</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN136">136</td><td class="line">        <span class='keyword'>char</span> *p = xmalloc( size );</td></tr>
+<tr><td class="num" id="LN137">137</td><td class="line">        <span class='macro'>va_start( ap, fmt )<span class='expansion'>__builtin_va_start(ap, fmt)</span></span>;</td></tr>
+<tr><td class="num" id="LN138">138</td><td class="line">	n = vsnprintf( p, size, fmt, ap );</td></tr>
+<tr><td class="num" id="LN139">139</td><td class="line">	<span class='macro'>va_end( ap )<span class='expansion'>__builtin_va_end(ap)</span></span>;</td></tr>
+<tr><td class="num" id="LN140">140</td><td class="line">        <span class='keyword'>if</span> (n == -1) size *= 2;</td></tr>
+<tr><td class="num" id="LN141">141</td><td class="line">        <span class='keyword'>else</span> <span class='keyword'>if</span> ((size_t)n &gt;= size) size = n + 1;</td></tr>
+<tr><td class="num" id="LN142">142</td><td class="line">        <span class='keyword'>else</span> <span class='keyword'>return</span> p;</td></tr>
+<tr><td class="num" id="LN143">143</td><td class="line">        free( p );</td></tr>
+<tr><td class="num" id="LN144">144</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN145">145</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN146">146</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN147">147</td><td class="line"><span class='keyword'>static</span> <span class='keyword'>struct</span> strarray *strarray_init( <span class='keyword'>const</span> <span class='keyword'>char</span> *str )</td></tr>
+<tr><td class="num" id="LN148">148</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN149">149</td><td class="line">    <span class='keyword'>struct</span> strarray *array = xmalloc( <span class='keyword'>sizeof</span>(*array) );</td></tr>
+<tr><td class="num" id="LN150">150</td><td class="line">    array-&gt;count = 0;</td></tr>
+<tr><td class="num" id="LN151">151</td><td class="line">    array-&gt;max = 16;</td></tr>
+<tr><td class="num" id="LN152">152</td><td class="line">    array-&gt;str = xmalloc( array-&gt;max * <span class='keyword'>sizeof</span>(*array-&gt;str) );</td></tr>
+<tr><td class="num" id="LN153">153</td><td class="line">    <span class='keyword'>if</span> (str) array-&gt;str[array-&gt;count++] = str;</td></tr>
+<tr><td class="num" id="LN154">154</td><td class="line">    <span class='keyword'>return</span> array;</td></tr>
+<tr><td class="num" id="LN155">155</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN156">156</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN157">157</td><td class="line"><span class='keyword'>static</span> <span class='keyword'>struct</span> strarray *strarray_copy( <span class='keyword'>const</span> <span class='keyword'>struct</span> strarray *src )</td></tr>
+<tr><td class="num" id="LN158">158</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN159">159</td><td class="line">    <span class='keyword'>struct</span> strarray *array = xmalloc( <span class='keyword'>sizeof</span>(*array) );</td></tr>
+<tr><td class="num" id="LN160">160</td><td class="line">    array-&gt;count = src-&gt;count;</td></tr>
+<tr><td class="num" id="LN161">161</td><td class="line">    array-&gt;max = src-&gt;max;</td></tr>
+<tr><td class="num" id="LN162">162</td><td class="line">    array-&gt;str = xmalloc( array-&gt;max * <span class='keyword'>sizeof</span>(*array-&gt;str) );</td></tr>
+<tr><td class="num" id="LN163">163</td><td class="line">    memcpy( array-&gt;str, src-&gt;str, array-&gt;count * <span class='keyword'>sizeof</span>(*array-&gt;str) );</td></tr>
+<tr><td class="num" id="LN164">164</td><td class="line">    <span class='keyword'>return</span> array;</td></tr>
+<tr><td class="num" id="LN165">165</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN166">166</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN167">167</td><td class="line"><span class='keyword'>static</span> <span class='keyword'>void</span> strarray_add_one( <span class='keyword'>struct</span> strarray *array, <span class='keyword'>const</span> <span class='keyword'>char</span> *str )</td></tr>
+<tr><td class="num" id="LN168">168</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN169">169</td><td class="line">    <span class='keyword'>if</span> (array-&gt;count == array-&gt;max)</td></tr>
+<tr><td class="num" id="LN170">170</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN171">171</td><td class="line">        array-&gt;max *= 2;</td></tr>
+<tr><td class="num" id="LN172">172</td><td class="line">        array-&gt;str = xrealloc( array-&gt;str, array-&gt;max * <span class='keyword'>sizeof</span>(*array-&gt;str) );</td></tr>
+<tr><td class="num" id="LN173">173</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN174">174</td><td class="line">    array-&gt;str[array-&gt;count++] = str;</td></tr>
+<tr><td class="num" id="LN175">175</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN176">176</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN177">177</td><td class="line"><span class='keyword'>void</span> strarray_add( <span class='keyword'>struct</span> strarray *array, ... )</td></tr>
+<tr><td class="num" id="LN178">178</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN179">179</td><td class="line">    va_list valist;</td></tr>
+<tr><td class="num" id="LN180">180</td><td class="line">    <span class='keyword'>const</span> <span class='keyword'>char</span> *str;</td></tr>
+<tr><td class="num" id="LN181">181</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN182">182</td><td class="line">    <span class='macro'>va_start( valist, array )<span class='expansion'>__builtin_va_start(valist, array)</span></span>;</td></tr>
+<tr><td class="num" id="LN183">183</td><td class="line">    <span class='keyword'>while</span> ((str = <span class='macro'>va_arg( valist, <span class='keyword'>const</span> <span class='keyword'>char</span> *)<span class='expansion'>__builtin_va_arg(valist, const char *)</span></span>)) strarray_add_one( array, str );</td></tr>
+<tr><td class="num" id="LN184">184</td><td class="line">    <span class='macro'>va_end( valist )<span class='expansion'>__builtin_va_end(valist)</span></span>;</td></tr>
+<tr><td class="num" id="LN185">185</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN186">186</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN187">187</td><td class="line"><span class='keyword'>void</span> strarray_addv( <span class='keyword'>struct</span> strarray *array, <span class='keyword'>char</span> * <span class='keyword'>const</span> *argv )</td></tr>
+<tr><td class="num" id="LN188">188</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN189">189</td><td class="line">    <span class='keyword'>while</span> (*argv) strarray_add_one( array, *argv++ );</td></tr>
+<tr><td class="num" id="LN190">190</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN191">191</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN192">192</td><td class="line"><span class='keyword'>struct</span> strarray *strarray_fromstring( <span class='keyword'>const</span> <span class='keyword'>char</span> *str, <span class='keyword'>const</span> <span class='keyword'>char</span> *delim )</td></tr>
+<tr><td class="num" id="LN193">193</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN194">194</td><td class="line">    <span class='keyword'>const</span> <span class='keyword'>char</span> *tok;</td></tr>
+<tr><td class="num" id="LN195">195</td><td class="line">    <span class='keyword'>struct</span> strarray *array = strarray_init( <span class='macro'>NULL<span class='expansion'>((void*)0)</span></span> );</td></tr>
+<tr><td class="num" id="LN196">196</td><td class="line">    <span class='keyword'>char</span> *buf = <span class='macro'>strdup( str )<span class='expansion'>(__extension__ (__builtin_constant_p (str) &amp;&amp; ((size_t<br>)(const void *)((str) + 1) - (size_t)(const void *)(str) == 1<br>) ? (((const char *) (str))[0] == '\0' ? (char *) calloc ((size_t<br>) 1, (size_t) 1) : ({ size_t __len = strlen (str) + 1; char *<br>__retval = (char *) malloc (__len); if (__retval != ((void*)0<br>)) __retval = (char *) memcpy (__retval, str, __len); __retval<br>; })) : __strdup (str)))</span></span>;</td></tr>
+<tr><td class="num" id="LN197">197</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN198">198</td><td class="line">    <span class='keyword'>for</span> (tok = strtok( buf, delim ); tok; tok = strtok( <span class='macro'>NULL<span class='expansion'>((void*)0)</span></span>, delim ))</td></tr>
+<tr><td class="num" id="LN199">199</td><td class="line">	strarray_add_one( array, <span class='macro'>strdup( tok )<span class='expansion'>(__extension__ (__builtin_constant_p (tok) &amp;&amp; ((size_t<br>)(const void *)((tok) + 1) - (size_t)(const void *)(tok) == 1<br>) ? (((const char *) (tok))[0] == '\0' ? (char *) calloc ((size_t<br>) 1, (size_t) 1) : ({ size_t __len = strlen (tok) + 1; char *<br>__retval = (char *) malloc (__len); if (__retval != ((void*)0<br>)) __retval = (char *) memcpy (__retval, tok, __len); __retval<br>; })) : __strdup (tok)))</span></span>);</td></tr>
+<tr><td class="num" id="LN200">200</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN201">201</td><td class="line">    free( buf );</td></tr>
+<tr><td class="num" id="LN202">202</td><td class="line">    <span class='keyword'>return</span> array;</td></tr>
+<tr><td class="num" id="LN203">203</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN204">204</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN205">205</td><td class="line"><span class='keyword'>void</span> strarray_free( <span class='keyword'>struct</span> strarray *array )</td></tr>
+<tr><td class="num" id="LN206">206</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN207">207</td><td class="line">    free( array-&gt;str );</td></tr>
+<tr><td class="num" id="LN208">208</td><td class="line">    free( array );</td></tr>
+<tr><td class="num" id="LN209">209</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN210">210</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN211">211</td><td class="line"><span class='keyword'>void</span> fatal_error( <span class='keyword'>const</span> <span class='keyword'>char</span> *msg, ... )</td></tr>
+<tr><td class="num" id="LN212">212</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN213">213</td><td class="line">    va_list valist;</td></tr>
+<tr><td class="num" id="LN214">214</td><td class="line">    <span class='macro'>va_start( valist, msg )<span class='expansion'>__builtin_va_start(valist, msg)</span></span>;</td></tr>
+<tr><td class="num" id="LN215">215</td><td class="line">    <span class='keyword'>if</span> (input_file_name)</td></tr>
+<tr><td class="num" id="LN216">216</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN217">217</td><td class="line">        fprintf( <span class='macro'>stderr<span class='expansion'>stderr</span></span>, <span class='string_literal'>"%s:"</span>, input_file_name );</td></tr>
+<tr><td class="num" id="LN218">218</td><td class="line">        <span class='keyword'>if</span> (current_line)</td></tr>
+<tr><td class="num" id="LN219">219</td><td class="line">            fprintf( <span class='macro'>stderr<span class='expansion'>stderr</span></span>, <span class='string_literal'>"%d:"</span>, current_line );</td></tr>
+<tr><td class="num" id="LN220">220</td><td class="line">        fputc( ' ', <span class='macro'>stderr<span class='expansion'>stderr</span></span> );</td></tr>
+<tr><td class="num" id="LN221">221</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN222">222</td><td class="line">    <span class='keyword'>else</span> fprintf( <span class='macro'>stderr<span class='expansion'>stderr</span></span>, <span class='string_literal'>"winebuild: "</span> );</td></tr>
+<tr><td class="num" id="LN223">223</td><td class="line">    vfprintf( <span class='macro'>stderr<span class='expansion'>stderr</span></span>, msg, valist );</td></tr>
+<tr><td class="num" id="LN224">224</td><td class="line">    <span class='macro'>va_end( valist )<span class='expansion'>__builtin_va_end(valist)</span></span>;</td></tr>
+<tr><td class="num" id="LN225">225</td><td class="line">    exit(1);</td></tr>
+<tr><td class="num" id="LN226">226</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN227">227</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN228">228</td><td class="line"><span class='keyword'>void</span> fatal_perror( <span class='keyword'>const</span> <span class='keyword'>char</span> *msg, ... )</td></tr>
+<tr><td class="num" id="LN229">229</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN230">230</td><td class="line">    va_list valist;</td></tr>
+<tr><td class="num" id="LN231">231</td><td class="line">    <span class='macro'>va_start( valist, msg )<span class='expansion'>__builtin_va_start(valist, msg)</span></span>;</td></tr>
+<tr><td class="num" id="LN232">232</td><td class="line">    <span class='keyword'>if</span> (input_file_name)</td></tr>
+<tr><td class="num" id="LN233">233</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN234">234</td><td class="line">        fprintf( <span class='macro'>stderr<span class='expansion'>stderr</span></span>, <span class='string_literal'>"%s:"</span>, input_file_name );</td></tr>
+<tr><td class="num" id="LN235">235</td><td class="line">        <span class='keyword'>if</span> (current_line)</td></tr>
+<tr><td class="num" id="LN236">236</td><td class="line">            fprintf( <span class='macro'>stderr<span class='expansion'>stderr</span></span>, <span class='string_literal'>"%d:"</span>, current_line );</td></tr>
+<tr><td class="num" id="LN237">237</td><td class="line">        fputc( ' ', <span class='macro'>stderr<span class='expansion'>stderr</span></span> );</td></tr>
+<tr><td class="num" id="LN238">238</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN239">239</td><td class="line">    vfprintf( <span class='macro'>stderr<span class='expansion'>stderr</span></span>, msg, valist );</td></tr>
+<tr><td class="num" id="LN240">240</td><td class="line">    perror( <span class='string_literal'>" "</span> );</td></tr>
+<tr><td class="num" id="LN241">241</td><td class="line">    <span class='macro'>va_end( valist )<span class='expansion'>__builtin_va_end(valist)</span></span>;</td></tr>
+<tr><td class="num" id="LN242">242</td><td class="line">    exit(1);</td></tr>
+<tr><td class="num" id="LN243">243</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN244">244</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN245">245</td><td class="line"><span class='keyword'>void</span> error( <span class='keyword'>const</span> <span class='keyword'>char</span> *msg, ... )</td></tr>
+<tr><td class="num" id="LN246">246</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN247">247</td><td class="line">    va_list valist;</td></tr>
+<tr><td class="num" id="LN248">248</td><td class="line">    <span class='macro'>va_start( valist, msg )<span class='expansion'>__builtin_va_start(valist, msg)</span></span>;</td></tr>
+<tr><td class="num" id="LN249">249</td><td class="line">    <span class='keyword'>if</span> (input_file_name)</td></tr>
+<tr><td class="num" id="LN250">250</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN251">251</td><td class="line">        fprintf( <span class='macro'>stderr<span class='expansion'>stderr</span></span>, <span class='string_literal'>"%s:"</span>, input_file_name );</td></tr>
+<tr><td class="num" id="LN252">252</td><td class="line">        <span class='keyword'>if</span> (current_line)</td></tr>
+<tr><td class="num" id="LN253">253</td><td class="line">            fprintf( <span class='macro'>stderr<span class='expansion'>stderr</span></span>, <span class='string_literal'>"%d:"</span>, current_line );</td></tr>
+<tr><td class="num" id="LN254">254</td><td class="line">        fputc( ' ', <span class='macro'>stderr<span class='expansion'>stderr</span></span> );</td></tr>
+<tr><td class="num" id="LN255">255</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN256">256</td><td class="line">    vfprintf( <span class='macro'>stderr<span class='expansion'>stderr</span></span>, msg, valist );</td></tr>
+<tr><td class="num" id="LN257">257</td><td class="line">    <span class='macro'>va_end( valist )<span class='expansion'>__builtin_va_end(valist)</span></span>;</td></tr>
+<tr><td class="num" id="LN258">258</td><td class="line">    nb_errors++;</td></tr>
+<tr><td class="num" id="LN259">259</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN260">260</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN261">261</td><td class="line"><span class='keyword'>void</span> warning( <span class='keyword'>const</span> <span class='keyword'>char</span> *msg, ... )</td></tr>
+<tr><td class="num" id="LN262">262</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN263">263</td><td class="line">    va_list valist;</td></tr>
+<tr><td class="num" id="LN264">264</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN265">265</td><td class="line">    <span class='keyword'>if</span> (!display_warnings) <span class='keyword'>return</span>;</td></tr>
+<tr><td class="num" id="LN266">266</td><td class="line">    <span class='macro'>va_start( valist, msg )<span class='expansion'>__builtin_va_start(valist, msg)</span></span>;</td></tr>
+<tr><td class="num" id="LN267">267</td><td class="line">    <span class='keyword'>if</span> (input_file_name)</td></tr>
+<tr><td class="num" id="LN268">268</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN269">269</td><td class="line">        fprintf( <span class='macro'>stderr<span class='expansion'>stderr</span></span>, <span class='string_literal'>"%s:"</span>, input_file_name );</td></tr>
+<tr><td class="num" id="LN270">270</td><td class="line">        <span class='keyword'>if</span> (current_line)</td></tr>
+<tr><td class="num" id="LN271">271</td><td class="line">            fprintf( <span class='macro'>stderr<span class='expansion'>stderr</span></span>, <span class='string_literal'>"%d:"</span>, current_line );</td></tr>
+<tr><td class="num" id="LN272">272</td><td class="line">        fputc( ' ', <span class='macro'>stderr<span class='expansion'>stderr</span></span> );</td></tr>
+<tr><td class="num" id="LN273">273</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN274">274</td><td class="line">    fprintf( <span class='macro'>stderr<span class='expansion'>stderr</span></span>, <span class='string_literal'>"warning: "</span> );</td></tr>
+<tr><td class="num" id="LN275">275</td><td class="line">    vfprintf( <span class='macro'>stderr<span class='expansion'>stderr</span></span>, msg, valist );</td></tr>
+<tr><td class="num" id="LN276">276</td><td class="line">    <span class='macro'>va_end( valist )<span class='expansion'>__builtin_va_end(valist)</span></span>;</td></tr>
+<tr><td class="num" id="LN277">277</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN278">278</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN279">279</td><td class="line"><span class='keyword'>int</span> output( <span class='keyword'>const</span> <span class='keyword'>char</span> *format, ... )</td></tr>
+<tr><td class="num" id="LN280">280</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN281">281</td><td class="line">    <span class='keyword'>int</span> ret;</td></tr>
+<tr><td class="num" id="LN282">282</td><td class="line">    va_list valist;</td></tr>
+<tr><td class="num" id="LN283">283</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN284">284</td><td class="line">    <span class='macro'>va_start( valist, format )<span class='expansion'>__builtin_va_start(valist, format)</span></span>;</td></tr>
+<tr><td class="num" id="LN285">285</td><td class="line">    ret = vfprintf( output_file, format, valist );</td></tr>
+<tr><td class="num" id="LN286">286</td><td class="line">    <span class='macro'>va_end( valist )<span class='expansion'>__builtin_va_end(valist)</span></span>;</td></tr>
+<tr><td class="num" id="LN287">287</td><td class="line">    <span class='keyword'>if</span> (ret &lt; 0) fatal_perror( <span class='string_literal'>"Output error"</span> );</td></tr>
+<tr><td class="num" id="LN288">288</td><td class="line">    <span class='keyword'>return</span> ret;</td></tr>
+<tr><td class="num" id="LN289">289</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN290">290</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN291">291</td><td class="line"><span class='keyword'>void</span> spawn( <span class='keyword'>struct</span> strarray *args )</td></tr>
+<tr><td class="num" id="LN292">292</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN293">293</td><td class="line">    <span class='keyword'>unsigned</span> <span class='keyword'>int</span> i;</td></tr>
+<tr><td class="num" id="LN294">294</td><td class="line">    <span class='keyword'>int</span> status;</td></tr>
+<tr><td class="num" id="LN295">295</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN296">296</td><td class="line">    strarray_add_one( args, <span class='macro'>NULL<span class='expansion'>((void*)0)</span></span> );</td></tr>
+<tr><td class="num" id="LN297">297</td><td class="line">    <span class='keyword'>if</span> (verbose)</td></tr>
+<tr><td class="num" id="LN298">298</td><td class="line">        <span class='keyword'>for</span> (i = 0; args-&gt;str[i]; i++)</td></tr>
+<tr><td class="num" id="LN299">299</td><td class="line">            fprintf( <span class='macro'>stderr<span class='expansion'>stderr</span></span>, <span class='string_literal'>"%s%c"</span>, args-&gt;str[i], args-&gt;str[i+1] ? ' ' : '\n' );</td></tr>
+<tr><td class="num" id="LN300">300</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN301">301</td><td class="line">    <span class='keyword'>if</span> ((status = _spawnvp( <span class='macro'>_P_WAIT<span class='expansion'>0</span></span>, args-&gt;str[0], args-&gt;str )))</td></tr>
+<tr><td class="num" id="LN302">302</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN303">303</td><td class="line">	<span class='keyword'>if</span> (status &gt; 0) fatal_error( <span class='string_literal'>"%s failed with status %u\n"</span>, args-&gt;str[0], status );</td></tr>
+<tr><td class="num" id="LN304">304</td><td class="line">	<span class='keyword'>else</span> fatal_perror( <span class='string_literal'>"winebuild"</span> );</td></tr>
+<tr><td class="num" id="LN305">305</td><td class="line">	exit( 1 );</td></tr>
+<tr><td class="num" id="LN306">306</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN307">307</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN308">308</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN309">309</td><td class="line"><span class='comment'>/* find a build tool in the path, trying the various names */</span></td></tr>
+<tr><td class="num" id="LN310">310</td><td class="line"><span class='keyword'>struct</span> strarray *find_tool( <span class='keyword'>const</span> <span class='keyword'>char</span> *name, <span class='keyword'>const</span> <span class='keyword'>char</span> * <span class='keyword'>const</span> *names )</td></tr>
+<tr><td class="num" id="LN311">311</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN312">312</td><td class="line">    <span class='keyword'>static</span> <span class='keyword'>char</span> **dirs;</td></tr>
+<tr><td class="num" id="LN313">313</td><td class="line">    <span class='keyword'>static</span> <span class='keyword'>unsigned</span> <span class='keyword'>int</span> count, maxlen;</td></tr>
+<tr><td class="num" id="LN314">314</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN315">315</td><td class="line">    <span class='keyword'>char</span> *p, *file;</td></tr>
+<tr><td class="num" id="LN316">316</td><td class="line">    <span class='keyword'>const</span> <span class='keyword'>char</span> *alt_names[2];</td></tr>
+<tr><td class="num" id="LN317">317</td><td class="line">    <span class='keyword'>unsigned</span> <span class='keyword'>int</span> i, len;</td></tr>
+<tr><td class="num" id="LN318">318</td><td class="line">    <span class='keyword'>struct</span> stat st;</td></tr>
+<tr><td class="num" id="LN319">319</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN320">320</td><td class="line">    <span class='keyword'>if</span> (!dirs)</td></tr>
+<tr><td class="num" id="LN321">321</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN322">322</td><td class="line">        <span class='keyword'>char</span> *path;</td></tr>
+<tr><td class="num" id="LN323">323</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN324">324</td><td class="line">        <span class='comment'>/* split the path in directories */</span></td></tr>
+<tr><td class="num" id="LN325">325</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN326">326</td><td class="line">        <span class='keyword'>if</span> (!getenv( <span class='string_literal'>"PATH"</span> )) fatal_error( <span class='string_literal'>"PATH not set, cannot find required tools\n"</span> );</td></tr>
+<tr><td class="num" id="LN327">327</td><td class="line">        path = xstrdup( getenv( <span class='string_literal'>"PATH"</span> ));</td></tr>
+<tr><td class="num" id="LN328">328</td><td class="line">        <span class='keyword'>for</span> (p = path, count = 2; *p; p++) <span class='keyword'>if</span> (*p == <span class='macro'>PATH_SEPARATOR<span class='expansion'>':'</span></span>) count++;</td></tr>
+<tr><td class="num" id="LN329">329</td><td class="line">        dirs = xmalloc( count * <span class='keyword'>sizeof</span>(*dirs) );</td></tr>
+<tr><td class="num" id="LN330">330</td><td class="line">        count = 0;</td></tr>
+<tr><td class="num" id="LN331">331</td><td class="line">        dirs[count++] = p = path;</td></tr>
+<tr><td class="num" id="LN332">332</td><td class="line">        <span class='keyword'>while</span> (*p)</td></tr>
+<tr><td class="num" id="LN333">333</td><td class="line">        {</td></tr>
+<tr><td class="num" id="LN334">334</td><td class="line">            <span class='keyword'>while</span> (*p &amp;&amp; *p != <span class='macro'>PATH_SEPARATOR<span class='expansion'>':'</span></span>) p++;</td></tr>
+<tr><td class="num" id="LN335">335</td><td class="line">            <span class='keyword'>if</span> (!*p) <span class='keyword'>break</span>;</td></tr>
+<tr><td class="num" id="LN336">336</td><td class="line">            *p++ = 0;</td></tr>
+<tr><td class="num" id="LN337">337</td><td class="line">            dirs[count++] = p;</td></tr>
+<tr><td class="num" id="LN338">338</td><td class="line">        }</td></tr>
+<tr><td class="num" id="LN339">339</td><td class="line">        <span class='keyword'>for</span> (i = 0; i &lt; count; i++) maxlen = <span class='macro'>max( maxlen, strlen(dirs[i])+2 )<span class='expansion'>(((maxlen) &gt; (strlen(dirs[i])+2)) ? (maxlen) : (strlen(dirs<br>[i])+2))</span></span>;</td></tr>
+<tr><td class="num" id="LN340">340</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN341">341</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN342">342</td><td class="line">    <span class='keyword'>if</span> (!names)</td></tr>
+<tr><td class="num" id="LN343">343</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN344">344</td><td class="line">        alt_names[0] = name;</td></tr>
+<tr><td class="num" id="LN345">345</td><td class="line">        alt_names[1] = <span class='macro'>NULL<span class='expansion'>((void*)0)</span></span>;</td></tr>
+<tr><td class="num" id="LN346">346</td><td class="line">        names = alt_names;</td></tr>
+<tr><td class="num" id="LN347">347</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN348">348</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN349">349</td><td class="line">    <span class='keyword'>while</span> (*names)</td></tr>
+<tr><td class="num" id="LN350">350</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN351">351</td><td class="line">        len = strlen(*names) + <span class='keyword'>sizeof</span>(<span class='macro'>EXEEXT<span class='expansion'>""</span></span>) + 1;</td></tr>
+<tr><td class="num" id="LN352">352</td><td class="line">        <span class='keyword'>if</span> (target_alias)</td></tr>
+<tr><td class="num" id="LN353">353</td><td class="line">            len += strlen(target_alias) + 1;</td></tr>
+<tr><td class="num" id="LN354">354</td><td class="line">        file = xmalloc( maxlen + len );</td></tr>
+<tr><td class="num" id="LN355">355</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN356">356</td><td class="line">        <span class='keyword'>for</span> (i = 0; i &lt; count; i++)</td></tr>
+<tr><td class="num" id="LN357">357</td><td class="line">        {</td></tr>
+<tr><td class="num" id="LN358">358</td><td class="line">            strcpy( file, dirs[i] );</td></tr>
+<tr><td class="num" id="LN359">359</td><td class="line">            p = file + strlen(file);</td></tr>
+<tr><td class="num" id="LN360">360</td><td class="line">            <span class='keyword'>if</span> (p == file) *p++ = '.';</td></tr>
+<tr><td class="num" id="LN361">361</td><td class="line">            <span class='keyword'>if</span> (p[-1] != '/') *p++ = '/';</td></tr>
+<tr><td class="num" id="LN362">362</td><td class="line">            <span class='keyword'>if</span> (target_alias)</td></tr>
+<tr><td class="num" id="LN363">363</td><td class="line">            {</td></tr>
+<tr><td class="num" id="LN364">364</td><td class="line">                strcpy( p, target_alias );</td></tr>
+<tr><td class="num" id="LN365">365</td><td class="line">                p += strlen(p);</td></tr>
+<tr><td class="num" id="LN366">366</td><td class="line">                *p++ = '-';</td></tr>
+<tr><td class="num" id="LN367">367</td><td class="line">            }</td></tr>
+<tr><td class="num" id="LN368">368</td><td class="line">            strcpy( p, *names );</td></tr>
+<tr><td class="num" id="LN369">369</td><td class="line">            strcat( p, <span class='macro'>EXEEXT<span class='expansion'>""</span></span> );</td></tr>
+<tr><td class="num" id="LN370">370</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN371">371</td><td class="line">            <span class='keyword'>if</span> (!stat( file, &amp;st ) &amp;&amp; <span class='macro'>S_ISREG(st.st_mode)<span class='expansion'>((((st.st_mode)) &amp; 0170000) == (0100000))</span></span> &amp;&amp; (st.st_mode &amp; 0111))</td></tr>
+<tr><td class="num" id="LN372">372</td><td class="line">                <span class='keyword'>return</span> strarray_init( file );</td></tr>
+<tr><td class="num" id="LN373">373</td><td class="line">        }</td></tr>
+<tr><td class="num" id="LN374">374</td><td class="line">        free( file );</td></tr>
+<tr><td class="num" id="LN375">375</td><td class="line">        names++;</td></tr>
+<tr><td class="num" id="LN376">376</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN377">377</td><td class="line">    fatal_error( <span class='string_literal'>"cannot find the '%s' tool\n"</span>, name );</td></tr>
+<tr><td class="num" id="LN378">378</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN379">379</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN380">380</td><td class="line"><span class='keyword'>struct</span> strarray *get_as_command(<span class='keyword'>void</span>)</td></tr>
+<tr><td class="num" id="LN381">381</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN382">382</td><td class="line">    <span class='keyword'>struct</span> strarray *args;</td></tr>
+<tr><td class="num" id="LN383">383</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN384">384</td><td class="line">    <span class='keyword'>if</span> (cc_command)</td></tr>
+<tr><td class="num" id="LN385">385</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN386">386</td><td class="line">        args = strarray_copy( cc_command );</td></tr>
+<tr><td class="num" id="LN387">387</td><td class="line">        strarray_add( args, <span class='string_literal'>"-xassembler"</span>, <span class='string_literal'>"-c"</span>, <span class='macro'>NULL<span class='expansion'>((void*)0)</span></span> );</td></tr>
+<tr><td class="num" id="LN388">388</td><td class="line">        <span class='keyword'>if</span> (force_pointer_size)</td></tr>
+<tr><td class="num" id="LN389">389</td><td class="line">            strarray_add_one( args, (force_pointer_size == 8) ? <span class='string_literal'>"-m64"</span> : <span class='string_literal'>"-m32"</span> );</td></tr>
+<tr><td class="num" id="LN390">390</td><td class="line">        <span class='keyword'>if</span> (cpu_option) strarray_add_one( args, strmake(<span class='string_literal'>"-mcpu=%s"</span>, cpu_option) );</td></tr>
+<tr><td class="num" id="LN391">391</td><td class="line">        <span class='keyword'>return</span> args;</td></tr>
+<tr><td class="num" id="LN392">392</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN393">393</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN394">394</td><td class="line">    <span class='keyword'>if</span> (!as_command)</td></tr>
+<tr><td class="num" id="LN395">395</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN396">396</td><td class="line">        <span class='keyword'>static</span> <span class='keyword'>const</span> <span class='keyword'>char</span> * <span class='keyword'>const</span> commands[] = { <span class='string_literal'>"gas"</span>, <span class='string_literal'>"as"</span>, <span class='macro'>NULL<span class='expansion'>((void*)0)</span></span> };</td></tr>
+<tr><td class="num" id="LN397">397</td><td class="line">        as_command = find_tool( <span class='string_literal'>"as"</span>, commands );</td></tr>
+<tr><td class="num" id="LN398">398</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN399">399</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN400">400</td><td class="line">    args = strarray_copy( as_command );</td></tr>
+<tr><td class="num" id="LN401">401</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN402">402</td><td class="line">    <span class='keyword'>if</span> (force_pointer_size)</td></tr>
+<tr><td class="num" id="LN403">403</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN404">404</td><td class="line">        <span class='keyword'>switch</span> (target_platform)</td></tr>
+<tr><td class="num" id="LN405">405</td><td class="line">        {</td></tr>
+<tr><td class="num" id="LN406">406</td><td class="line">        <span class='keyword'>case</span> PLATFORM_APPLE:</td></tr>
+<tr><td class="num" id="LN407">407</td><td class="line">            strarray_add( args, <span class='string_literal'>"-arch"</span>, (force_pointer_size == 8) ? <span class='string_literal'>"x86_64"</span> : <span class='string_literal'>"i386"</span>, <span class='macro'>NULL<span class='expansion'>((void*)0)</span></span> );</td></tr>
+<tr><td class="num" id="LN408">408</td><td class="line">            <span class='keyword'>break</span>;</td></tr>
+<tr><td class="num" id="LN409">409</td><td class="line">        <span class='keyword'>default</span>:</td></tr>
+<tr><td class="num" id="LN410">410</td><td class="line">            <span class='keyword'>switch</span>(target_cpu)</td></tr>
+<tr><td class="num" id="LN411">411</td><td class="line">            {</td></tr>
+<tr><td class="num" id="LN412">412</td><td class="line">            <span class='keyword'>case</span> CPU_POWERPC:</td></tr>
+<tr><td class="num" id="LN413">413</td><td class="line">                strarray_add_one( args, (force_pointer_size == 8) ? <span class='string_literal'>"-a64"</span> : <span class='string_literal'>"-a32"</span> );</td></tr>
+<tr><td class="num" id="LN414">414</td><td class="line">                <span class='keyword'>break</span>;</td></tr>
+<tr><td class="num" id="LN415">415</td><td class="line">            <span class='keyword'>default</span>:</td></tr>
+<tr><td class="num" id="LN416">416</td><td class="line">                strarray_add_one( args, (force_pointer_size == 8) ? <span class='string_literal'>"--64"</span> : <span class='string_literal'>"--32"</span> );</td></tr>
+<tr><td class="num" id="LN417">417</td><td class="line">                <span class='keyword'>break</span>;</td></tr>
+<tr><td class="num" id="LN418">418</td><td class="line">            }</td></tr>
+<tr><td class="num" id="LN419">419</td><td class="line">            <span class='keyword'>break</span>;</td></tr>
+<tr><td class="num" id="LN420">420</td><td class="line">        }</td></tr>
+<tr><td class="num" id="LN421">421</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN422">422</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN423">423</td><td class="line">    <span class='keyword'>if</span> (cpu_option) strarray_add_one( args, strmake(<span class='string_literal'>"-mcpu=%s"</span>, cpu_option) );</td></tr>
+<tr><td class="num" id="LN424">424</td><td class="line">    <span class='keyword'>return</span> args;</td></tr>
+<tr><td class="num" id="LN425">425</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN426">426</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN427">427</td><td class="line"><span class='keyword'>struct</span> strarray *get_ld_command(<span class='keyword'>void</span>)</td></tr>
+<tr><td class="num" id="LN428">428</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN429">429</td><td class="line">    <span class='keyword'>struct</span> strarray *args;</td></tr>
+<tr><td class="num" id="LN430">430</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN431">431</td><td class="line">    <span class='keyword'>if</span> (!ld_command)</td></tr>
+<tr><td class="num" id="LN432">432</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN433">433</td><td class="line">        <span class='keyword'>static</span> <span class='keyword'>const</span> <span class='keyword'>char</span> * <span class='keyword'>const</span> commands[] = { <span class='string_literal'>"ld"</span>, <span class='string_literal'>"gld"</span>, <span class='macro'>NULL<span class='expansion'>((void*)0)</span></span> };</td></tr>
+<tr><td class="num" id="LN434">434</td><td class="line">        ld_command = find_tool( <span class='string_literal'>"ld"</span>, commands );</td></tr>
+<tr><td class="num" id="LN435">435</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN436">436</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN437">437</td><td class="line">    args = strarray_copy( ld_command );</td></tr>
+<tr><td class="num" id="LN438">438</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN439">439</td><td class="line">    <span class='keyword'>if</span> (force_pointer_size)</td></tr>
+<tr><td class="num" id="LN440">440</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN441">441</td><td class="line">        <span class='keyword'>switch</span> (target_platform)</td></tr>
+<tr><td class="num" id="LN442">442</td><td class="line">        {</td></tr>
+<tr><td class="num" id="LN443">443</td><td class="line">        <span class='keyword'>case</span> PLATFORM_APPLE:</td></tr>
+<tr><td class="num" id="LN444">444</td><td class="line">            strarray_add( args, <span class='string_literal'>"-arch"</span>, (force_pointer_size == 8) ? <span class='string_literal'>"x86_64"</span> : <span class='string_literal'>"i386"</span>, <span class='macro'>NULL<span class='expansion'>((void*)0)</span></span> );</td></tr>
+<tr><td class="num" id="LN445">445</td><td class="line">            <span class='keyword'>break</span>;</td></tr>
+<tr><td class="num" id="LN446">446</td><td class="line">        <span class='keyword'>case</span> PLATFORM_FREEBSD:</td></tr>
+<tr><td class="num" id="LN447">447</td><td class="line">            strarray_add( args, <span class='string_literal'>"-m"</span>, (force_pointer_size == 8) ? <span class='string_literal'>"elf_x86_64_fbsd"</span> : <span class='string_literal'>"elf_i386_fbsd"</span>, <span class='macro'>NULL<span class='expansion'>((void*)0)</span></span> );</td></tr>
+<tr><td class="num" id="LN448">448</td><td class="line">            <span class='keyword'>break</span>;</td></tr>
+<tr><td class="num" id="LN449">449</td><td class="line">        <span class='keyword'>default</span>:</td></tr>
+<tr><td class="num" id="LN450">450</td><td class="line">            <span class='keyword'>switch</span>(target_cpu)</td></tr>
+<tr><td class="num" id="LN451">451</td><td class="line">            {</td></tr>
+<tr><td class="num" id="LN452">452</td><td class="line">            <span class='keyword'>case</span> CPU_POWERPC:</td></tr>
+<tr><td class="num" id="LN453">453</td><td class="line">                strarray_add( args, <span class='string_literal'>"-m"</span>, (force_pointer_size == 8) ? <span class='string_literal'>"elf64ppc"</span> : <span class='string_literal'>"elf32ppc"</span>, <span class='macro'>NULL<span class='expansion'>((void*)0)</span></span> );</td></tr>
+<tr><td class="num" id="LN454">454</td><td class="line">                <span class='keyword'>break</span>;</td></tr>
+<tr><td class="num" id="LN455">455</td><td class="line">            <span class='keyword'>default</span>:</td></tr>
+<tr><td class="num" id="LN456">456</td><td class="line">                strarray_add( args, <span class='string_literal'>"-m"</span>, (force_pointer_size == 8) ? <span class='string_literal'>"elf_x86_64"</span> : <span class='string_literal'>"elf_i386"</span>, <span class='macro'>NULL<span class='expansion'>((void*)0)</span></span> );</td></tr>
+<tr><td class="num" id="LN457">457</td><td class="line">                <span class='keyword'>break</span>;</td></tr>
+<tr><td class="num" id="LN458">458</td><td class="line">            }</td></tr>
+<tr><td class="num" id="LN459">459</td><td class="line">            <span class='keyword'>break</span>;</td></tr>
+<tr><td class="num" id="LN460">460</td><td class="line">        }</td></tr>
+<tr><td class="num" id="LN461">461</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN462">462</td><td class="line">    <span class='keyword'>return</span> args;</td></tr>
+<tr><td class="num" id="LN463">463</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN464">464</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN465">465</td><td class="line"><span class='keyword'>const</span> <span class='keyword'>char</span> *get_nm_command(<span class='keyword'>void</span>)</td></tr>
+<tr><td class="num" id="LN466">466</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN467">467</td><td class="line">    <span class='keyword'>if</span> (!nm_command)</td></tr>
+<tr><td class="num" id="LN468">468</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN469">469</td><td class="line">        <span class='keyword'>static</span> <span class='keyword'>const</span> <span class='keyword'>char</span> * <span class='keyword'>const</span> commands[] = { <span class='string_literal'>"nm"</span>, <span class='string_literal'>"gnm"</span>, <span class='macro'>NULL<span class='expansion'>((void*)0)</span></span> };</td></tr>
+<tr><td class="num" id="LN470">470</td><td class="line">        nm_command = find_tool( <span class='string_literal'>"nm"</span>, commands );</td></tr>
+<tr><td class="num" id="LN471">471</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN472">472</td><td class="line">    <span class='keyword'>if</span> (nm_command-&gt;count &gt; 1)</td></tr>
+<tr><td class="num" id="LN473">473</td><td class="line">        fatal_error( <span class='string_literal'>"multiple arguments in nm command not supported yet\n"</span> );</td></tr>
+<tr><td class="num" id="LN474">474</td><td class="line">    <span class='keyword'>return</span> nm_command-&gt;str[0];</td></tr>
+<tr><td class="num" id="LN475">475</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN476">476</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN477">477</td><td class="line"><span class='comment'>/* get a name for a temp file, automatically cleaned up on exit */</span></td></tr>
+<tr><td class="num" id="LN478">478</td><td class="line"><span class='keyword'>char</span> *get_temp_file_name( <span class='keyword'>const</span> <span class='keyword'>char</span> *prefix, <span class='keyword'>const</span> <span class='keyword'>char</span> *suffix )</td></tr>
+<tr><td class="num" id="LN479">479</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN480">480</td><td class="line">    <span class='keyword'>char</span> *name;</td></tr>
+<tr><td class="num" id="LN481">481</td><td class="line">    <span class='keyword'>const</span> <span class='keyword'>char</span> *ext, *basename;</td></tr>
+<tr><td class="num" id="LN482">482</td><td class="line">    <span class='keyword'>int</span> fd;</td></tr>
+<tr><td class="num" id="LN483">483</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN484">484</td><td class="line">    <span class='keyword'>if</span> (<span class="mrange">!prefix</span> || !prefix[0]) prefix = <span class='string_literal'>"winebuild"</span>;</td></tr>
+<tr><td class="num"></td><td class="line"><div id="Path1" class="msg msgEvent" style="margin-left:9ex"><table class="msgT"><tr><td valign="top"><div class="PathIndex PathIndexEvent">1</div></td><td>Assuming 'prefix' is non-null</td><td><div class="PathNav"><a href="#Path2" title="Next event (2)">&#x2192;</a></div></td></tr></table></div></td></tr>
+<tr><td class="num"></td><td class="line"><div id="Path2" class="msg msgControl" style="margin-left:5ex"><table class="msgT"><tr><td valign="top"><div class="PathIndex PathIndexControl">2</div></td><td><div class="PathNav"><a href="#Path1" title="Previous event (1)">&#x2190;</a></div></td></td><td>Taking false branch</td><td><div class="PathNav"><a href="#Path3" title="Next event (3)">&#x2192;</a></div></td></tr></table></div></td></tr>
+<tr><td class="num" id="LN485">485</td><td class="line">    <span class='keyword'>if</span> (<span class="mrange">!suffix</span>) suffix = <span class='string_literal'>""</span>;</td></tr>
+<tr><td class="num"></td><td class="line"><div id="Path3" class="msg msgEvent" style="margin-left:9ex"><table class="msgT"><tr><td valign="top"><div class="PathIndex PathIndexEvent">3</div></td><td><div class="PathNav"><a href="#Path2" title="Previous event (2)">&#x2190;</a></div></td></td><td>Assuming 'suffix' is non-null</td><td><div class="PathNav"><a href="#Path4" title="Next event (4)">&#x2192;</a></div></td></tr></table></div></td></tr>
+<tr><td class="num"></td><td class="line"><div id="Path4" class="msg msgControl" style="margin-left:5ex"><table class="msgT"><tr><td valign="top"><div class="PathIndex PathIndexControl">4</div></td><td><div class="PathNav"><a href="#Path3" title="Previous event (3)">&#x2190;</a></div></td></td><td>Taking false branch</td><td><div class="PathNav"><a href="#Path5" title="Next event (5)">&#x2192;</a></div></td></tr></table></div></td></tr>
+<tr><td class="num" id="LN486">486</td><td class="line">    <span class='keyword'>if</span> ((<span class="mrange">basename</span> = strrchr( prefix, '/' ))) basename++;</td></tr>
+<tr><td class="num"></td><td class="line"><div id="Path5" class="msg msgEvent" style="margin-left:10ex"><table class="msgT"><tr><td valign="top"><div class="PathIndex PathIndexEvent">5</div></td><td><div class="PathNav"><a href="#Path4" title="Previous event (4)">&#x2190;</a></div></td></td><td>Assuming 'basename' is not null</td><td><div class="PathNav"><a href="#Path6" title="Next event (6)">&#x2192;</a></div></td></tr></table></div></td></tr>
+<tr><td class="num"></td><td class="line"><div id="Path6" class="msg msgControl" style="margin-left:5ex"><table class="msgT"><tr><td valign="top"><div class="PathIndex PathIndexControl">6</div></td><td><div class="PathNav"><a href="#Path5" title="Previous event (5)">&#x2190;</a></div></td></td><td>Taking true branch</td><td><div class="PathNav"><a href="#Path7" title="Next event (7)">&#x2192;</a></div></td></tr></table></div></td></tr>
+<tr><td class="num" id="LN487">487</td><td class="line">    <span class='keyword'>else</span> basename = prefix;</td></tr>
+<tr><td class="num" id="LN488">488</td><td class="line">    <span class='keyword'>if</span> (!(<span class="mrange">ext</span> = <span class='macro'>strchr( basename, '.' )<span class='expansion'>(__extension__ (__builtin_constant_p ('.') &amp;&amp; !__builtin_constant_p<br> (basename) &amp;&amp; ('.') == '\0' ? (char *) __rawmemchr (<br>basename, '.') : __builtin_strchr (basename, '.')))</span></span>)) ext = prefix + strlen(prefix);</td></tr>
+<tr><td class="num"></td><td class="line"><div id="Path7" class="msg msgEvent" style="margin-left:11ex"><table class="msgT"><tr><td valign="top"><div class="PathIndex PathIndexEvent">7</div></td><td><div class="PathNav"><a href="#Path6" title="Previous event (6)">&#x2190;</a></div></td></td><td>Assuming 'ext' is not null</td><td><div class="PathNav"><a href="#Path8" title="Next event (8)">&#x2192;</a></div></td></tr></table></div></td></tr>
+<tr><td class="num"></td><td class="line"><div id="Path8" class="msg msgControl" style="margin-left:5ex"><table class="msgT"><tr><td valign="top"><div class="PathIndex PathIndexControl">8</div></td><td><div class="PathNav"><a href="#Path7" title="Previous event (7)">&#x2190;</a></div></td></td><td>Taking false branch</td><td><div class="PathNav"><a href="#Path9" title="Next event (9)">&#x2192;</a></div></td></tr></table></div></td></tr>
+<tr><td class="num" id="LN489">489</td><td class="line">    name = xmalloc( <span class='keyword'>sizeof</span>(<span class='string_literal'>"/tmp/"</span>) + (ext - prefix) + <span class='keyword'>sizeof</span>(<span class='string_literal'>".XXXXXX"</span>) + strlen(suffix) );</td></tr>
+<tr><td class="num" id="LN490">490</td><td class="line">    memcpy( name, prefix, ext - prefix );</td></tr>
+<tr><td class="num" id="LN491">491</td><td class="line">    strcpy( name + (ext - prefix), <span class='string_literal'>".XXXXXX"</span> );</td></tr>
+<tr><td class="num" id="LN492">492</td><td class="line">    strcat( name, suffix );</td></tr>
+<tr><td class="num" id="LN493">493</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN494">494</td><td class="line">    <span class='keyword'>if</span> ((fd = mkstemps( name, strlen(suffix) )) == -1)</td></tr>
+<tr><td class="num"></td><td class="line"><div id="Path9" class="msg msgControl" style="margin-left:5ex"><table class="msgT"><tr><td valign="top"><div class="PathIndex PathIndexControl">9</div></td><td><div class="PathNav"><a href="#Path8" title="Previous event (8)">&#x2190;</a></div></td></td><td>Taking true branch</td><td><div class="PathNav"><a href="#EndPath" title="Next event (10)">&#x2192;</a></div></td></tr></table></div></td></tr>
+<tr><td class="num" id="LN495">495</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN496">496</td><td class="line">        strcpy( <span class="mrange">name</span>, <span class='string_literal'>"/tmp/"</span> );</td></tr>
+<tr><td class="num"></td><td class="line"><div id="EndPath" class="msg msgEvent" style="margin-left:9ex"><table class="msgT"><tr><td valign="top"><div class="PathIndex PathIndexEvent">10</div></td><td><div class="PathNav"><a href="#Path9" title="Previous event (9)">&#x2190;</a></div></td></td><td>String copy function overflows destination buffer</td></tr></table></div></td></tr>
+<tr><td class="num" id="LN497">497</td><td class="line">        memcpy( name + 5, basename, ext - basename );</td></tr>
+<tr><td class="num" id="LN498">498</td><td class="line">        strcpy( name + 5 + (ext - basename), <span class='string_literal'>".XXXXXX"</span> );</td></tr>
+<tr><td class="num" id="LN499">499</td><td class="line">        strcat( name, suffix );</td></tr>
+<tr><td class="num" id="LN500">500</td><td class="line">        <span class='keyword'>if</span> ((fd = mkstemps( name, strlen(suffix) )) == -1)</td></tr>
+<tr><td class="num" id="LN501">501</td><td class="line">            fatal_error( <span class='string_literal'>"could not generate a temp file\n"</span> );</td></tr>
+<tr><td class="num" id="LN502">502</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN503">503</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN504">504</td><td class="line">    close( fd );</td></tr>
+<tr><td class="num" id="LN505">505</td><td class="line">    <span class='keyword'>if</span> (nb_tmp_files &gt;= max_tmp_files)</td></tr>
+<tr><td class="num" id="LN506">506</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN507">507</td><td class="line">        max_tmp_files = <span class='macro'>max( 2 * max_tmp_files, 8 )<span class='expansion'>(((2 * max_tmp_files) &gt; (8)) ? (2 * max_tmp_files) : (8))</span></span>;</td></tr>
+<tr><td class="num" id="LN508">508</td><td class="line">        tmp_files = xrealloc( tmp_files, max_tmp_files * <span class='keyword'>sizeof</span>(tmp_files[0]) );</td></tr>
+<tr><td class="num" id="LN509">509</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN510">510</td><td class="line">    tmp_files[nb_tmp_files++] = name;</td></tr>
+<tr><td class="num" id="LN511">511</td><td class="line">    <span class='keyword'>return</span> name;</td></tr>
+<tr><td class="num" id="LN512">512</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN513">513</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN514">514</td><td class="line"><span class='comment'>/*******************************************************************</span></td></tr>
+<tr><td class="num" id="LN515">515</td><td class="line"> <span class='comment'>*         buffer management</span></td></tr>
+<tr><td class="num" id="LN516">516</td><td class="line"> <span class='comment'>*</span></td></tr>
+<tr><td class="num" id="LN517">517</td><td class="line"> <span class='comment'>* Function for reading from/writing to a memory buffer.</span></td></tr>
+<tr><td class="num" id="LN518">518</td><td class="line"> <span class='comment'>*/</span></td></tr>
+<tr><td class="num" id="LN519">519</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN520">520</td><td class="line"><span class='keyword'>int</span> byte_swapped = 0;</td></tr>
+<tr><td class="num" id="LN521">521</td><td class="line"><span class='keyword'>const</span> <span class='keyword'>char</span> *input_buffer_filename;</td></tr>
+<tr><td class="num" id="LN522">522</td><td class="line"><span class='keyword'>const</span> <span class='keyword'>unsigned</span> <span class='keyword'>char</span> *input_buffer;</td></tr>
+<tr><td class="num" id="LN523">523</td><td class="line">size_t input_buffer_pos;</td></tr>
+<tr><td class="num" id="LN524">524</td><td class="line">size_t input_buffer_size;</td></tr>
+<tr><td class="num" id="LN525">525</td><td class="line"><span class='keyword'>unsigned</span> <span class='keyword'>char</span> *output_buffer;</td></tr>
+<tr><td class="num" id="LN526">526</td><td class="line">size_t output_buffer_pos;</td></tr>
+<tr><td class="num" id="LN527">527</td><td class="line">size_t output_buffer_size;</td></tr>
+<tr><td class="num" id="LN528">528</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN529">529</td><td class="line"><span class='keyword'>static</span> <span class='keyword'>void</span> check_output_buffer_space( size_t size )</td></tr>
+<tr><td class="num" id="LN530">530</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN531">531</td><td class="line">    <span class='keyword'>if</span> (output_buffer_pos + size &gt;= output_buffer_size)</td></tr>
+<tr><td class="num" id="LN532">532</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN533">533</td><td class="line">        output_buffer_size = <span class='macro'>max( output_buffer_size * 2, output_buffer_pos + size )<span class='expansion'>(((output_buffer_size * 2) &gt; (output_buffer_pos + size)) ?<br> (output_buffer_size * 2) : (output_buffer_pos + size))</span></span>;</td></tr>
+<tr><td class="num" id="LN534">534</td><td class="line">        output_buffer = xrealloc( output_buffer, output_buffer_size );</td></tr>
+<tr><td class="num" id="LN535">535</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN536">536</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN537">537</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN538">538</td><td class="line"><span class='keyword'>void</span> init_input_buffer( <span class='keyword'>const</span> <span class='keyword'>char</span> *file )</td></tr>
+<tr><td class="num" id="LN539">539</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN540">540</td><td class="line">    <span class='keyword'>int</span> fd;</td></tr>
+<tr><td class="num" id="LN541">541</td><td class="line">    <span class='keyword'>struct</span> stat st;</td></tr>
+<tr><td class="num" id="LN542">542</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN543">543</td><td class="line">    <span class='keyword'>if</span> ((fd = open( file, <span class='macro'>O_RDONLY<span class='expansion'>00</span></span> | <span class='macro'>O_BINARY<span class='expansion'>0</span></span> )) == -1) fatal_perror( <span class='string_literal'>"Cannot open %s"</span>, file );</td></tr>
+<tr><td class="num" id="LN544">544</td><td class="line">    <span class='keyword'>if</span> ((fstat( fd, &amp;st ) == -1)) fatal_perror( <span class='string_literal'>"Cannot stat %s"</span>, file );</td></tr>
+<tr><td class="num" id="LN545">545</td><td class="line">    <span class='keyword'>if</span> (!st.st_size) fatal_error( <span class='string_literal'>"%s is an empty file\n"</span>, file );</td></tr>
+<tr><td class="num" id="LN546">546</td><td class="line"><span class='directive'>#ifdef	<span class='macro'>HAVE_MMAP<span class='expansion'>1</span></span></span></td></tr>
+<tr><td class="num" id="LN547">547</td><td class="line">    <span class='keyword'>if</span> ((input_buffer = mmap( <span class='macro'>NULL<span class='expansion'>((void*)0)</span></span>, st.st_size, <span class='macro'>PROT_READ<span class='expansion'>0x1</span></span>, <span class='macro'>MAP_PRIVATE<span class='expansion'>0x02</span></span>, fd, 0 )) == (<span class='keyword'>void</span>*)-1)</td></tr>
+<tr><td class="num" id="LN548">548</td><td class="line"><span class='directive'>#endif</span></td></tr>
+<tr><td class="num" id="LN549">549</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN550">550</td><td class="line">        <span class='keyword'>unsigned</span> <span class='keyword'>char</span> *buffer = xmalloc( st.st_size );</td></tr>
+<tr><td class="num" id="LN551">551</td><td class="line">        <span class='keyword'>if</span> (read( fd, buffer, st.st_size ) != st.st_size) fatal_error( <span class='string_literal'>"Cannot read %s\n"</span>, file );</td></tr>
+<tr><td class="num" id="LN552">552</td><td class="line">        input_buffer = buffer;</td></tr>
+<tr><td class="num" id="LN553">553</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN554">554</td><td class="line">    close( fd );</td></tr>
+<tr><td class="num" id="LN555">555</td><td class="line">    input_buffer_filename = xstrdup( file );</td></tr>
+<tr><td class="num" id="LN556">556</td><td class="line">    input_buffer_size = st.st_size;</td></tr>
+<tr><td class="num" id="LN557">557</td><td class="line">    input_buffer_pos = 0;</td></tr>
+<tr><td class="num" id="LN558">558</td><td class="line">    byte_swapped = 0;</td></tr>
+<tr><td class="num" id="LN559">559</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN560">560</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN561">561</td><td class="line"><span class='keyword'>void</span> init_output_buffer(<span class='keyword'>void</span>)</td></tr>
+<tr><td class="num" id="LN562">562</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN563">563</td><td class="line">    output_buffer_size = 1024;</td></tr>
+<tr><td class="num" id="LN564">564</td><td class="line">    output_buffer_pos = 0;</td></tr>
+<tr><td class="num" id="LN565">565</td><td class="line">    output_buffer = xmalloc( output_buffer_size );</td></tr>
+<tr><td class="num" id="LN566">566</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN567">567</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN568">568</td><td class="line"><span class='keyword'>void</span> flush_output_buffer(<span class='keyword'>void</span>)</td></tr>
+<tr><td class="num" id="LN569">569</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN570">570</td><td class="line">    <span class='keyword'>if</span> (fwrite( output_buffer, 1, output_buffer_pos, output_file ) != output_buffer_pos)</td></tr>
+<tr><td class="num" id="LN571">571</td><td class="line">        fatal_error( <span class='string_literal'>"Error writing to %s\n"</span>, output_file_name );</td></tr>
+<tr><td class="num" id="LN572">572</td><td class="line">    free( output_buffer );</td></tr>
+<tr><td class="num" id="LN573">573</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN574">574</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN575">575</td><td class="line"><span class='keyword'>unsigned</span> <span class='keyword'>char</span> get_byte(<span class='keyword'>void</span>)</td></tr>
+<tr><td class="num" id="LN576">576</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN577">577</td><td class="line">    <span class='keyword'>if</span> (input_buffer_pos &gt;= input_buffer_size)</td></tr>
+<tr><td class="num" id="LN578">578</td><td class="line">        fatal_error( <span class='string_literal'>"%s is a truncated file\n"</span>, input_buffer_filename );</td></tr>
+<tr><td class="num" id="LN579">579</td><td class="line">    <span class='keyword'>return</span> input_buffer[input_buffer_pos++];</td></tr>
+<tr><td class="num" id="LN580">580</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN581">581</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN582">582</td><td class="line"><span class='keyword'>unsigned</span> <span class='keyword'>short</span> get_word(<span class='keyword'>void</span>)</td></tr>
+<tr><td class="num" id="LN583">583</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN584">584</td><td class="line">    <span class='keyword'>unsigned</span> <span class='keyword'>short</span> ret;</td></tr>
+<tr><td class="num" id="LN585">585</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN586">586</td><td class="line">    <span class='keyword'>if</span> (input_buffer_pos + <span class='keyword'>sizeof</span>(ret) &gt; input_buffer_size)</td></tr>
+<tr><td class="num" id="LN587">587</td><td class="line">        fatal_error( <span class='string_literal'>"%s is a truncated file\n"</span>, input_buffer_filename );</td></tr>
+<tr><td class="num" id="LN588">588</td><td class="line">    memcpy( &amp;ret, input_buffer + input_buffer_pos, <span class='keyword'>sizeof</span>(ret) );</td></tr>
+<tr><td class="num" id="LN589">589</td><td class="line">    <span class='keyword'>if</span> (byte_swapped) ret = (ret &lt;&lt; 8) | (ret &gt;&gt; 8);</td></tr>
+<tr><td class="num" id="LN590">590</td><td class="line">    input_buffer_pos += <span class='keyword'>sizeof</span>(ret);</td></tr>
+<tr><td class="num" id="LN591">591</td><td class="line">    <span class='keyword'>return</span> ret;</td></tr>
+<tr><td class="num" id="LN592">592</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN593">593</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN594">594</td><td class="line"><span class='keyword'>unsigned</span> <span class='keyword'>int</span> get_dword(<span class='keyword'>void</span>)</td></tr>
+<tr><td class="num" id="LN595">595</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN596">596</td><td class="line">    <span class='keyword'>unsigned</span> <span class='keyword'>int</span> ret;</td></tr>
+<tr><td class="num" id="LN597">597</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN598">598</td><td class="line">    <span class='keyword'>if</span> (input_buffer_pos + <span class='keyword'>sizeof</span>(ret) &gt; input_buffer_size)</td></tr>
+<tr><td class="num" id="LN599">599</td><td class="line">        fatal_error( <span class='string_literal'>"%s is a truncated file\n"</span>, input_buffer_filename );</td></tr>
+<tr><td class="num" id="LN600">600</td><td class="line">    memcpy( &amp;ret, input_buffer + input_buffer_pos, <span class='keyword'>sizeof</span>(ret) );</td></tr>
+<tr><td class="num" id="LN601">601</td><td class="line">    <span class='keyword'>if</span> (byte_swapped)</td></tr>
+<tr><td class="num" id="LN602">602</td><td class="line">        ret = ((ret &lt;&lt; 24) | ((ret &lt;&lt; 8) &amp; 0x00ff0000) | ((ret &gt;&gt; 8) &amp; 0x0000ff00) | (ret &gt;&gt; 24));</td></tr>
+<tr><td class="num" id="LN603">603</td><td class="line">    input_buffer_pos += <span class='keyword'>sizeof</span>(ret);</td></tr>
+<tr><td class="num" id="LN604">604</td><td class="line">    <span class='keyword'>return</span> ret;</td></tr>
+<tr><td class="num" id="LN605">605</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN606">606</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN607">607</td><td class="line"><span class='keyword'>void</span> put_data( <span class='keyword'>const</span> <span class='keyword'>void</span> *data, size_t size )</td></tr>
+<tr><td class="num" id="LN608">608</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN609">609</td><td class="line">    check_output_buffer_space( size );</td></tr>
+<tr><td class="num" id="LN610">610</td><td class="line">    memcpy( output_buffer + output_buffer_pos, data, size );</td></tr>
+<tr><td class="num" id="LN611">611</td><td class="line">    output_buffer_pos += size;</td></tr>
+<tr><td class="num" id="LN612">612</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN613">613</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN614">614</td><td class="line"><span class='keyword'>void</span> put_byte( <span class='keyword'>unsigned</span> <span class='keyword'>char</span> val )</td></tr>
+<tr><td class="num" id="LN615">615</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN616">616</td><td class="line">    check_output_buffer_space( 1 );</td></tr>
+<tr><td class="num" id="LN617">617</td><td class="line">    output_buffer[output_buffer_pos++] = val;</td></tr>
+<tr><td class="num" id="LN618">618</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN619">619</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN620">620</td><td class="line"><span class='keyword'>void</span> put_word( <span class='keyword'>unsigned</span> <span class='keyword'>short</span> val )</td></tr>
+<tr><td class="num" id="LN621">621</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN622">622</td><td class="line">    <span class='keyword'>if</span> (byte_swapped) val = (val &lt;&lt; 8) | (val &gt;&gt; 8);</td></tr>
+<tr><td class="num" id="LN623">623</td><td class="line">    put_data( &amp;val, <span class='keyword'>sizeof</span>(val) );</td></tr>
+<tr><td class="num" id="LN624">624</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN625">625</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN626">626</td><td class="line"><span class='keyword'>void</span> put_dword( <span class='keyword'>unsigned</span> <span class='keyword'>int</span> val )</td></tr>
+<tr><td class="num" id="LN627">627</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN628">628</td><td class="line">    <span class='keyword'>if</span> (byte_swapped)</td></tr>
+<tr><td class="num" id="LN629">629</td><td class="line">        val = ((val &lt;&lt; 24) | ((val &lt;&lt; 8) &amp; 0x00ff0000) | ((val &gt;&gt; 8) &amp; 0x0000ff00) | (val &gt;&gt; 24));</td></tr>
+<tr><td class="num" id="LN630">630</td><td class="line">    put_data( &amp;val, <span class='keyword'>sizeof</span>(val) );</td></tr>
+<tr><td class="num" id="LN631">631</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN632">632</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN633">633</td><td class="line"><span class='keyword'>void</span> put_qword( <span class='keyword'>unsigned</span> <span class='keyword'>int</span> val )</td></tr>
+<tr><td class="num" id="LN634">634</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN635">635</td><td class="line">    <span class='keyword'>if</span> (byte_swapped)</td></tr>
+<tr><td class="num" id="LN636">636</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN637">637</td><td class="line">        put_dword( 0 );</td></tr>
+<tr><td class="num" id="LN638">638</td><td class="line">        put_dword( val );</td></tr>
+<tr><td class="num" id="LN639">639</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN640">640</td><td class="line">    <span class='keyword'>else</span></td></tr>
+<tr><td class="num" id="LN641">641</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN642">642</td><td class="line">        put_dword( val );</td></tr>
+<tr><td class="num" id="LN643">643</td><td class="line">        put_dword( 0 );</td></tr>
+<tr><td class="num" id="LN644">644</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN645">645</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN646">646</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN647">647</td><td class="line"><span class='comment'>/* pointer-sized word */</span></td></tr>
+<tr><td class="num" id="LN648">648</td><td class="line"><span class='keyword'>void</span> put_pword( <span class='keyword'>unsigned</span> <span class='keyword'>int</span> val )</td></tr>
+<tr><td class="num" id="LN649">649</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN650">650</td><td class="line">    <span class='keyword'>if</span> (get_ptr_size() == 8) put_qword( val );</td></tr>
+<tr><td class="num" id="LN651">651</td><td class="line">    <span class='keyword'>else</span> put_dword( val );</td></tr>
+<tr><td class="num" id="LN652">652</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN653">653</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN654">654</td><td class="line"><span class='keyword'>void</span> align_output( <span class='keyword'>unsigned</span> <span class='keyword'>int</span> align )</td></tr>
+<tr><td class="num" id="LN655">655</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN656">656</td><td class="line">    size_t size = align - (output_buffer_pos % align);</td></tr>
+<tr><td class="num" id="LN657">657</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN658">658</td><td class="line">    <span class='keyword'>if</span> (size == align) <span class='keyword'>return</span>;</td></tr>
+<tr><td class="num" id="LN659">659</td><td class="line">    check_output_buffer_space( size );</td></tr>
+<tr><td class="num" id="LN660">660</td><td class="line">    memset( output_buffer + output_buffer_pos, 0, size );</td></tr>
+<tr><td class="num" id="LN661">661</td><td class="line">    output_buffer_pos += size;</td></tr>
+<tr><td class="num" id="LN662">662</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN663">663</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN664">664</td><td class="line"><span class='comment'>/* output a standard header for generated files */</span></td></tr>
+<tr><td class="num" id="LN665">665</td><td class="line"><span class='keyword'>void</span> output_standard_file_header(<span class='keyword'>void</span>)</td></tr>
+<tr><td class="num" id="LN666">666</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN667">667</td><td class="line">    <span class='keyword'>if</span> (spec_file_name)</td></tr>
+<tr><td class="num" id="LN668">668</td><td class="line">        output( <span class='string_literal'>"/* File generated automatically from %s; do not edit! */\n"</span>, spec_file_name );</td></tr>
+<tr><td class="num" id="LN669">669</td><td class="line">    <span class='keyword'>else</span></td></tr>
+<tr><td class="num" id="LN670">670</td><td class="line">        output( <span class='string_literal'>"/* File generated automatically; do not edit! */\n"</span> );</td></tr>
+<tr><td class="num" id="LN671">671</td><td class="line">    output( <span class='string_literal'>"/* This file can be copied, modified and distributed without restriction. */\n\n"</span> );</td></tr>
+<tr><td class="num" id="LN672">672</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN673">673</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN674">674</td><td class="line"><span class='comment'>/* dump a byte stream into the assembly code */</span></td></tr>
+<tr><td class="num" id="LN675">675</td><td class="line"><span class='keyword'>void</span> dump_bytes( <span class='keyword'>const</span> <span class='keyword'>void</span> *buffer, <span class='keyword'>unsigned</span> <span class='keyword'>int</span> size )</td></tr>
+<tr><td class="num" id="LN676">676</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN677">677</td><td class="line">    <span class='keyword'>unsigned</span> <span class='keyword'>int</span> i;</td></tr>
+<tr><td class="num" id="LN678">678</td><td class="line">    <span class='keyword'>const</span> <span class='keyword'>unsigned</span> <span class='keyword'>char</span> *ptr = buffer;</td></tr>
+<tr><td class="num" id="LN679">679</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN680">680</td><td class="line">    <span class='keyword'>if</span> (!size) <span class='keyword'>return</span>;</td></tr>
+<tr><td class="num" id="LN681">681</td><td class="line">    output( <span class='string_literal'>"\t.byte "</span> );</td></tr>
+<tr><td class="num" id="LN682">682</td><td class="line">    <span class='keyword'>for</span> (i = 0; i &lt; size - 1; i++, ptr++)</td></tr>
+<tr><td class="num" id="LN683">683</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN684">684</td><td class="line">        <span class='keyword'>if</span> ((i % 16) == 15) output( <span class='string_literal'>"0x%02x\n\t.byte "</span>, *ptr );</td></tr>
+<tr><td class="num" id="LN685">685</td><td class="line">        <span class='keyword'>else</span> output( <span class='string_literal'>"0x%02x,"</span>, *ptr );</td></tr>
+<tr><td class="num" id="LN686">686</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN687">687</td><td class="line">    output( <span class='string_literal'>"0x%02x\n"</span>, *ptr );</td></tr>
+<tr><td class="num" id="LN688">688</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN689">689</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN690">690</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN691">691</td><td class="line"><span class='comment'>/*******************************************************************</span></td></tr>
+<tr><td class="num" id="LN692">692</td><td class="line"> <span class='comment'>*         open_input_file</span></td></tr>
+<tr><td class="num" id="LN693">693</td><td class="line"> <span class='comment'>*</span></td></tr>
+<tr><td class="num" id="LN694">694</td><td class="line"> <span class='comment'>* Open a file in the given srcdir and set the input_file_name global variable.</span></td></tr>
+<tr><td class="num" id="LN695">695</td><td class="line"> <span class='comment'>*/</span></td></tr>
+<tr><td class="num" id="LN696">696</td><td class="line">FILE *open_input_file( <span class='keyword'>const</span> <span class='keyword'>char</span> *srcdir, <span class='keyword'>const</span> <span class='keyword'>char</span> *name )</td></tr>
+<tr><td class="num" id="LN697">697</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN698">698</td><td class="line">    <span class='keyword'>char</span> *fullname;</td></tr>
+<tr><td class="num" id="LN699">699</td><td class="line">    FILE *file = fopen( name, <span class='string_literal'>"r"</span> );</td></tr>
+<tr><td class="num" id="LN700">700</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN701">701</td><td class="line">    <span class='keyword'>if</span> (!file &amp;&amp; srcdir)</td></tr>
+<tr><td class="num" id="LN702">702</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN703">703</td><td class="line">        fullname = strmake( <span class='string_literal'>"%s/%s"</span>, srcdir, name );</td></tr>
+<tr><td class="num" id="LN704">704</td><td class="line">        file = fopen( fullname, <span class='string_literal'>"r"</span> );</td></tr>
+<tr><td class="num" id="LN705">705</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN706">706</td><td class="line">    <span class='keyword'>else</span> fullname = xstrdup( name );</td></tr>
+<tr><td class="num" id="LN707">707</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN708">708</td><td class="line">    <span class='keyword'>if</span> (!file) fatal_error( <span class='string_literal'>"Cannot open file '%s'\n"</span>, fullname );</td></tr>
+<tr><td class="num" id="LN709">709</td><td class="line">    input_file_name = fullname;</td></tr>
+<tr><td class="num" id="LN710">710</td><td class="line">    current_line = 1;</td></tr>
+<tr><td class="num" id="LN711">711</td><td class="line">    <span class='keyword'>return</span> file;</td></tr>
+<tr><td class="num" id="LN712">712</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN713">713</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN714">714</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN715">715</td><td class="line"><span class='comment'>/*******************************************************************</span></td></tr>
+<tr><td class="num" id="LN716">716</td><td class="line"> <span class='comment'>*         close_input_file</span></td></tr>
+<tr><td class="num" id="LN717">717</td><td class="line"> <span class='comment'>*</span></td></tr>
+<tr><td class="num" id="LN718">718</td><td class="line"> <span class='comment'>* Close the current input file (must have been opened with open_input_file).</span></td></tr>
+<tr><td class="num" id="LN719">719</td><td class="line"> <span class='comment'>*/</span></td></tr>
+<tr><td class="num" id="LN720">720</td><td class="line"><span class='keyword'>void</span> close_input_file( FILE *file )</td></tr>
+<tr><td class="num" id="LN721">721</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN722">722</td><td class="line">    fclose( file );</td></tr>
+<tr><td class="num" id="LN723">723</td><td class="line">    free( input_file_name );</td></tr>
+<tr><td class="num" id="LN724">724</td><td class="line">    input_file_name = <span class='macro'>NULL<span class='expansion'>((void*)0)</span></span>;</td></tr>
+<tr><td class="num" id="LN725">725</td><td class="line">    current_line = 0;</td></tr>
+<tr><td class="num" id="LN726">726</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN727">727</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN728">728</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN729">729</td><td class="line"><span class='comment'>/*******************************************************************</span></td></tr>
+<tr><td class="num" id="LN730">730</td><td class="line"> <span class='comment'>*         remove_stdcall_decoration</span></td></tr>
+<tr><td class="num" id="LN731">731</td><td class="line"> <span class='comment'>*</span></td></tr>
+<tr><td class="num" id="LN732">732</td><td class="line"> <span class='comment'>* Remove a possible @xx suffix from a function name.</span></td></tr>
+<tr><td class="num" id="LN733">733</td><td class="line"> <span class='comment'>* Return the numerical value of the suffix, or -1 if none.</span></td></tr>
+<tr><td class="num" id="LN734">734</td><td class="line"> <span class='comment'>*/</span></td></tr>
+<tr><td class="num" id="LN735">735</td><td class="line"><span class='keyword'>int</span> remove_stdcall_decoration( <span class='keyword'>char</span> *name )</td></tr>
+<tr><td class="num" id="LN736">736</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN737">737</td><td class="line">    <span class='keyword'>char</span> *p, *end = strrchr( name, '@' );</td></tr>
+<tr><td class="num" id="LN738">738</td><td class="line">    <span class='keyword'>if</span> (!end || !end[1] || end == name) <span class='keyword'>return</span> -1;</td></tr>
+<tr><td class="num" id="LN739">739</td><td class="line">    <span class='keyword'>if</span> (target_cpu != CPU_x86) <span class='keyword'>return</span> -1;</td></tr>
+<tr><td class="num" id="LN740">740</td><td class="line">    <span class='comment'>/* make sure all the rest is digits */</span></td></tr>
+<tr><td class="num" id="LN741">741</td><td class="line">    <span class='keyword'>for</span> (p = end + 1; *p; p++) <span class='keyword'>if</span> (!<span class='macro'>isdigit(*p)<span class='expansion'>((*__ctype_b_loc ())[(int) ((*p))] &amp; (unsigned short int)<br> _ISdigit)</span></span>) <span class='keyword'>return</span> -1;</td></tr>
+<tr><td class="num" id="LN742">742</td><td class="line">    *end = 0;</td></tr>
+<tr><td class="num" id="LN743">743</td><td class="line">    <span class='keyword'>return</span> atoi( end + 1 );</td></tr>
+<tr><td class="num" id="LN744">744</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN745">745</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN746">746</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN747">747</td><td class="line"><span class='comment'>/*******************************************************************</span></td></tr>
+<tr><td class="num" id="LN748">748</td><td class="line"> <span class='comment'>*         assemble_file</span></td></tr>
+<tr><td class="num" id="LN749">749</td><td class="line"> <span class='comment'>*</span></td></tr>
+<tr><td class="num" id="LN750">750</td><td class="line"> <span class='comment'>* Run a file through the assembler.</span></td></tr>
+<tr><td class="num" id="LN751">751</td><td class="line"> <span class='comment'>*/</span></td></tr>
+<tr><td class="num" id="LN752">752</td><td class="line"><span class='keyword'>void</span> assemble_file( <span class='keyword'>const</span> <span class='keyword'>char</span> *src_file, <span class='keyword'>const</span> <span class='keyword'>char</span> *obj_file )</td></tr>
+<tr><td class="num" id="LN753">753</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN754">754</td><td class="line">    <span class='keyword'>struct</span> strarray *args = get_as_command();</td></tr>
+<tr><td class="num" id="LN755">755</td><td class="line">    strarray_add( args, <span class='string_literal'>"-o"</span>, obj_file, src_file, <span class='macro'>NULL<span class='expansion'>((void*)0)</span></span> );</td></tr>
+<tr><td class="num" id="LN756">756</td><td class="line">    spawn( args );</td></tr>
+<tr><td class="num" id="LN757">757</td><td class="line">    strarray_free( args );</td></tr>
+<tr><td class="num" id="LN758">758</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN759">759</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN760">760</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN761">761</td><td class="line"><span class='comment'>/*******************************************************************</span></td></tr>
+<tr><td class="num" id="LN762">762</td><td class="line"> <span class='comment'>*         alloc_dll_spec</span></td></tr>
+<tr><td class="num" id="LN763">763</td><td class="line"> <span class='comment'>*</span></td></tr>
+<tr><td class="num" id="LN764">764</td><td class="line"> <span class='comment'>* Create a new dll spec file descriptor</span></td></tr>
+<tr><td class="num" id="LN765">765</td><td class="line"> <span class='comment'>*/</span></td></tr>
+<tr><td class="num" id="LN766">766</td><td class="line">DLLSPEC *alloc_dll_spec(<span class='keyword'>void</span>)</td></tr>
+<tr><td class="num" id="LN767">767</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN768">768</td><td class="line">    DLLSPEC *spec;</td></tr>
+<tr><td class="num" id="LN769">769</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN770">770</td><td class="line">    spec = xmalloc( <span class='keyword'>sizeof</span>(*spec) );</td></tr>
+<tr><td class="num" id="LN771">771</td><td class="line">    spec-&gt;file_name          = <span class='macro'>NULL<span class='expansion'>((void*)0)</span></span>;</td></tr>
+<tr><td class="num" id="LN772">772</td><td class="line">    spec-&gt;dll_name           = <span class='macro'>NULL<span class='expansion'>((void*)0)</span></span>;</td></tr>
+<tr><td class="num" id="LN773">773</td><td class="line">    spec-&gt;init_func          = <span class='macro'>NULL<span class='expansion'>((void*)0)</span></span>;</td></tr>
+<tr><td class="num" id="LN774">774</td><td class="line">    spec-&gt;main_module        = <span class='macro'>NULL<span class='expansion'>((void*)0)</span></span>;</td></tr>
+<tr><td class="num" id="LN775">775</td><td class="line">    spec-&gt;type               = SPEC_WIN32;</td></tr>
+<tr><td class="num" id="LN776">776</td><td class="line">    spec-&gt;base               = <span class='macro'>MAX_ORDINALS<span class='expansion'>65535</span></span>;</td></tr>
+<tr><td class="num" id="LN777">777</td><td class="line">    spec-&gt;limit              = 0;</td></tr>
+<tr><td class="num" id="LN778">778</td><td class="line">    spec-&gt;stack_size         = 0;</td></tr>
+<tr><td class="num" id="LN779">779</td><td class="line">    spec-&gt;heap_size          = 0;</td></tr>
+<tr><td class="num" id="LN780">780</td><td class="line">    spec-&gt;nb_entry_points    = 0;</td></tr>
+<tr><td class="num" id="LN781">781</td><td class="line">    spec-&gt;alloc_entry_points = 0;</td></tr>
+<tr><td class="num" id="LN782">782</td><td class="line">    spec-&gt;nb_names           = 0;</td></tr>
+<tr><td class="num" id="LN783">783</td><td class="line">    spec-&gt;nb_resources       = 0;</td></tr>
+<tr><td class="num" id="LN784">784</td><td class="line">    spec-&gt;characteristics    = <span class='macro'>IMAGE_FILE_EXECUTABLE_IMAGE<span class='expansion'>0x0002</span></span>;</td></tr>
+<tr><td class="num" id="LN785">785</td><td class="line">    <span class='keyword'>if</span> (get_ptr_size() &gt; 4)</td></tr>
+<tr><td class="num" id="LN786">786</td><td class="line">        spec-&gt;characteristics |= <span class='macro'>IMAGE_FILE_LARGE_ADDRESS_AWARE<span class='expansion'>0x0020</span></span>;</td></tr>
+<tr><td class="num" id="LN787">787</td><td class="line">    <span class='keyword'>else</span></td></tr>
+<tr><td class="num" id="LN788">788</td><td class="line">        spec-&gt;characteristics |= <span class='macro'>IMAGE_FILE_32BIT_MACHINE<span class='expansion'>0x0100</span></span>;</td></tr>
+<tr><td class="num" id="LN789">789</td><td class="line">    spec-&gt;dll_characteristics = <span class='macro'>IMAGE_DLLCHARACTERISTICS_NX_COMPAT<span class='expansion'>0x0100</span></span>;</td></tr>
+<tr><td class="num" id="LN790">790</td><td class="line">    spec-&gt;subsystem          = 0;</td></tr>
+<tr><td class="num" id="LN791">791</td><td class="line">    spec-&gt;subsystem_major    = 4;</td></tr>
+<tr><td class="num" id="LN792">792</td><td class="line">    spec-&gt;subsystem_minor    = 0;</td></tr>
+<tr><td class="num" id="LN793">793</td><td class="line">    spec-&gt;entry_points       = <span class='macro'>NULL<span class='expansion'>((void*)0)</span></span>;</td></tr>
+<tr><td class="num" id="LN794">794</td><td class="line">    spec-&gt;names              = <span class='macro'>NULL<span class='expansion'>((void*)0)</span></span>;</td></tr>
+<tr><td class="num" id="LN795">795</td><td class="line">    spec-&gt;ordinals           = <span class='macro'>NULL<span class='expansion'>((void*)0)</span></span>;</td></tr>
+<tr><td class="num" id="LN796">796</td><td class="line">    spec-&gt;resources          = <span class='macro'>NULL<span class='expansion'>((void*)0)</span></span>;</td></tr>
+<tr><td class="num" id="LN797">797</td><td class="line">    <span class='keyword'>return</span> spec;</td></tr>
+<tr><td class="num" id="LN798">798</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN799">799</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN800">800</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN801">801</td><td class="line"><span class='comment'>/*******************************************************************</span></td></tr>
+<tr><td class="num" id="LN802">802</td><td class="line"> <span class='comment'>*         free_dll_spec</span></td></tr>
+<tr><td class="num" id="LN803">803</td><td class="line"> <span class='comment'>*</span></td></tr>
+<tr><td class="num" id="LN804">804</td><td class="line"> <span class='comment'>* Free dll spec file descriptor</span></td></tr>
+<tr><td class="num" id="LN805">805</td><td class="line"> <span class='comment'>*/</span></td></tr>
+<tr><td class="num" id="LN806">806</td><td class="line"><span class='keyword'>void</span> free_dll_spec( DLLSPEC *spec )</td></tr>
+<tr><td class="num" id="LN807">807</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN808">808</td><td class="line">    <span class='keyword'>int</span> i;</td></tr>
+<tr><td class="num" id="LN809">809</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN810">810</td><td class="line">    <span class='keyword'>for</span> (i = 0; i &lt; spec-&gt;nb_entry_points; i++)</td></tr>
+<tr><td class="num" id="LN811">811</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN812">812</td><td class="line">        ORDDEF *odp = &amp;spec-&gt;entry_points[i];</td></tr>
+<tr><td class="num" id="LN813">813</td><td class="line">        free( odp-&gt;name );</td></tr>
+<tr><td class="num" id="LN814">814</td><td class="line">        free( odp-&gt;export_name );</td></tr>
+<tr><td class="num" id="LN815">815</td><td class="line">        free( odp-&gt;link_name );</td></tr>
+<tr><td class="num" id="LN816">816</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN817">817</td><td class="line">    free( spec-&gt;file_name );</td></tr>
+<tr><td class="num" id="LN818">818</td><td class="line">    free( spec-&gt;dll_name );</td></tr>
+<tr><td class="num" id="LN819">819</td><td class="line">    free( spec-&gt;init_func );</td></tr>
+<tr><td class="num" id="LN820">820</td><td class="line">    free( spec-&gt;entry_points );</td></tr>
+<tr><td class="num" id="LN821">821</td><td class="line">    free( spec-&gt;names );</td></tr>
+<tr><td class="num" id="LN822">822</td><td class="line">    free( spec-&gt;ordinals );</td></tr>
+<tr><td class="num" id="LN823">823</td><td class="line">    free( spec-&gt;resources );</td></tr>
+<tr><td class="num" id="LN824">824</td><td class="line">    free( spec );</td></tr>
+<tr><td class="num" id="LN825">825</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN826">826</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN827">827</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN828">828</td><td class="line"><span class='comment'>/*******************************************************************</span></td></tr>
+<tr><td class="num" id="LN829">829</td><td class="line"> <span class='comment'>*         make_c_identifier</span></td></tr>
+<tr><td class="num" id="LN830">830</td><td class="line"> <span class='comment'>*</span></td></tr>
+<tr><td class="num" id="LN831">831</td><td class="line"> <span class='comment'>* Map a string to a valid C identifier.</span></td></tr>
+<tr><td class="num" id="LN832">832</td><td class="line"> <span class='comment'>*/</span></td></tr>
+<tr><td class="num" id="LN833">833</td><td class="line"><span class='keyword'>const</span> <span class='keyword'>char</span> *make_c_identifier( <span class='keyword'>const</span> <span class='keyword'>char</span> *str )</td></tr>
+<tr><td class="num" id="LN834">834</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN835">835</td><td class="line">    <span class='keyword'>static</span> <span class='keyword'>char</span> buffer[256];</td></tr>
+<tr><td class="num" id="LN836">836</td><td class="line">    <span class='keyword'>char</span> *p;</td></tr>
+<tr><td class="num" id="LN837">837</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN838">838</td><td class="line">    <span class='keyword'>for</span> (p = buffer; *str &amp;&amp; p &lt; buffer+<span class='keyword'>sizeof</span>(buffer)-1; p++, str++)</td></tr>
+<tr><td class="num" id="LN839">839</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN840">840</td><td class="line">        <span class='keyword'>if</span> (<span class='macro'>isalnum(*str)<span class='expansion'>((*__ctype_b_loc ())[(int) ((*str))] &amp; (unsigned short int<br>) _ISalnum)</span></span>) *p = *str;</td></tr>
+<tr><td class="num" id="LN841">841</td><td class="line">        <span class='keyword'>else</span> *p = '_';</td></tr>
+<tr><td class="num" id="LN842">842</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN843">843</td><td class="line">    *p = 0;</td></tr>
+<tr><td class="num" id="LN844">844</td><td class="line">    <span class='keyword'>return</span> buffer;</td></tr>
+<tr><td class="num" id="LN845">845</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN846">846</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN847">847</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN848">848</td><td class="line"><span class='comment'>/*******************************************************************</span></td></tr>
+<tr><td class="num" id="LN849">849</td><td class="line"> <span class='comment'>*         get_stub_name</span></td></tr>
+<tr><td class="num" id="LN850">850</td><td class="line"> <span class='comment'>*</span></td></tr>
+<tr><td class="num" id="LN851">851</td><td class="line"> <span class='comment'>* Generate an internal name for a stub entry point.</span></td></tr>
+<tr><td class="num" id="LN852">852</td><td class="line"> <span class='comment'>*/</span></td></tr>
+<tr><td class="num" id="LN853">853</td><td class="line"><span class='keyword'>const</span> <span class='keyword'>char</span> *get_stub_name( <span class='keyword'>const</span> ORDDEF *odp, <span class='keyword'>const</span> DLLSPEC *spec )</td></tr>
+<tr><td class="num" id="LN854">854</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN855">855</td><td class="line">    <span class='keyword'>static</span> <span class='keyword'>char</span> *buffer;</td></tr>
+<tr><td class="num" id="LN856">856</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN857">857</td><td class="line">    free( buffer );</td></tr>
+<tr><td class="num" id="LN858">858</td><td class="line">    <span class='keyword'>if</span> (odp-&gt;name || odp-&gt;export_name)</td></tr>
+<tr><td class="num" id="LN859">859</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN860">860</td><td class="line">        <span class='keyword'>char</span> *p;</td></tr>
+<tr><td class="num" id="LN861">861</td><td class="line">        buffer = strmake( <span class='string_literal'>"__wine_stub_%s"</span>, odp-&gt;name ? odp-&gt;name : odp-&gt;export_name );</td></tr>
+<tr><td class="num" id="LN862">862</td><td class="line">        <span class='comment'>/* make sure name is a legal C identifier */</span></td></tr>
+<tr><td class="num" id="LN863">863</td><td class="line">        <span class='keyword'>for</span> (p = buffer; *p; p++) <span class='keyword'>if</span> (!<span class='macro'>isalnum(*p)<span class='expansion'>((*__ctype_b_loc ())[(int) ((*p))] &amp; (unsigned short int)<br> _ISalnum)</span></span> &amp;&amp; *p != '_') <span class='keyword'>break</span>;</td></tr>
+<tr><td class="num" id="LN864">864</td><td class="line">        <span class='keyword'>if</span> (!*p) <span class='keyword'>return</span> buffer;</td></tr>
+<tr><td class="num" id="LN865">865</td><td class="line">        free( buffer );</td></tr>
+<tr><td class="num" id="LN866">866</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN867">867</td><td class="line">    buffer = strmake( <span class='string_literal'>"__wine_stub_%s_%d"</span>, make_c_identifier(spec-&gt;file_name), odp-&gt;ordinal );</td></tr>
+<tr><td class="num" id="LN868">868</td><td class="line">    <span class='keyword'>return</span> buffer;</td></tr>
+<tr><td class="num" id="LN869">869</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN870">870</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN871">871</td><td class="line"><span class='comment'>/* parse a cpu name and return the corresponding value */</span></td></tr>
+<tr><td class="num" id="LN872">872</td><td class="line"><span class='keyword'>enum</span> target_cpu get_cpu_from_name( <span class='keyword'>const</span> <span class='keyword'>char</span> *name )</td></tr>
+<tr><td class="num" id="LN873">873</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN874">874</td><td class="line">    <span class='keyword'>unsigned</span> <span class='keyword'>int</span> i;</td></tr>
+<tr><td class="num" id="LN875">875</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN876">876</td><td class="line">    <span class='keyword'>for</span> (i = 0; i &lt; <span class='keyword'>sizeof</span>(cpu_names)/<span class='keyword'>sizeof</span>(cpu_names[0]); i++)</td></tr>
+<tr><td class="num" id="LN877">877</td><td class="line">        <span class='keyword'>if</span> (!<span class='macro'>strcmp( cpu_names[i].name, name )<span class='expansion'>__extension__ ({ size_t __s1_len, __s2_len; (__builtin_constant_p<br> (cpu_names[i].name) &amp;&amp; __builtin_constant_p (name) &amp;&amp;<br> (__s1_len = strlen (cpu_names[i].name), __s2_len = strlen (name<br>), (!((size_t)(const void *)((cpu_names[i].name) + 1) - (size_t<br>)(const void *)(cpu_names[i].name) == 1) || __s1_len &gt;= 4)<br> &amp;&amp; (!((size_t)(const void *)((name) + 1) - (size_t)(<br>const void *)(name) == 1) || __s2_len &gt;= 4)) ? __builtin_strcmp<br> (cpu_names[i].name, name) : (__builtin_constant_p (cpu_names<br>[i].name) &amp;&amp; ((size_t)(const void *)((cpu_names[i].name<br>) + 1) - (size_t)(const void *)(cpu_names[i].name) == 1) &amp;&amp;<br> (__s1_len = strlen (cpu_names[i].name), __s1_len &lt; 4) ? (<br>__builtin_constant_p (name) &amp;&amp; ((size_t)(const void *<br>)((name) + 1) - (size_t)(const void *)(name) == 1) ? __builtin_strcmp<br> (cpu_names[i].name, name) : (__extension__ ({ const unsigned<br> char *__s2 = (const unsigned char *) (const char *) (name); register<br> int __result = (((const unsigned char *) (const char *) (cpu_names<br>[i].name))[0] - __s2[0]); if (__s1_len &gt; 0 &amp;&amp; __result<br> == 0) { __result = (((const unsigned char *) (const char *) (<br>cpu_names[i].name))[1] - __s2[1]); if (__s1_len &gt; 1 &amp;&amp;<br> __result == 0) { __result = (((const unsigned char *) (const<br> char *) (cpu_names[i].name))[2] - __s2[2]); if (__s1_len &gt;<br> 2 &amp;&amp; __result == 0) __result = (((const unsigned char<br> *) (const char *) (cpu_names[i].name))[3] - __s2[3]); } } __result<br>; }))) : (__builtin_constant_p (name) &amp;&amp; ((size_t)(const<br> void *)((name) + 1) - (size_t)(const void *)(name) == 1) &amp;&amp;<br> (__s2_len = strlen (name), __s2_len &lt; 4) ? (__builtin_constant_p<br> (cpu_names[i].name) &amp;&amp; ((size_t)(const void *)((cpu_names<br>[i].name) + 1) - (size_t)(const void *)(cpu_names[i].name) ==<br> 1) ? __builtin_strcmp (cpu_names[i].name, name) : (__extension__<br> ({ const unsigned char *__s1 = (const unsigned char *) (const<br> char *) (cpu_names[i].name); register int __result = __s1[0]<br> - ((const unsigned char *) (const char *) (name))[0]; if (__s2_len<br> &gt; 0 &amp;&amp; __result == 0) { __result = (__s1[1] - ((const<br> unsigned char *) (const char *) (name))[1]); if (__s2_len &gt;<br> 1 &amp;&amp; __result == 0) { __result = (__s1[2] - ((const unsigned<br> char *) (const char *) (name))[2]); if (__s2_len &gt; 2 &amp;&amp;<br> __result == 0) __result = (__s1[3] - ((const unsigned char *<br>) (const char *) (name))[3]); } } __result; }))) : __builtin_strcmp<br> (cpu_names[i].name, name)))); })</span></span>) <span class='keyword'>return</span> cpu_names[i].cpu;</td></tr>
+<tr><td class="num" id="LN878">878</td><td class="line">    <span class='keyword'>return</span> -1;</td></tr>
+<tr><td class="num" id="LN879">879</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN880">880</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN881">881</td><td class="line"><span class='comment'>/*****************************************************************</span></td></tr>
+<tr><td class="num" id="LN882">882</td><td class="line"> <span class='comment'>*  Function:    get_alignment</span></td></tr>
+<tr><td class="num" id="LN883">883</td><td class="line"> <span class='comment'>*</span></td></tr>
+<tr><td class="num" id="LN884">884</td><td class="line"> <span class='comment'>*  Description:</span></td></tr>
+<tr><td class="num" id="LN885">885</td><td class="line"> <span class='comment'>*    According to the info page for gas, the .align directive behaves</span></td></tr>
+<tr><td class="num" id="LN886">886</td><td class="line"> <span class='comment'>* differently on different systems.  On some architectures, the</span></td></tr>
+<tr><td class="num" id="LN887">887</td><td class="line"> <span class='comment'>* argument of a .align directive is the number of bytes to pad to, so</span></td></tr>
+<tr><td class="num" id="LN888">888</td><td class="line"> <span class='comment'>* to align on an 8-byte boundary you'd say</span></td></tr>
+<tr><td class="num" id="LN889">889</td><td class="line"> <span class='comment'>*     .align 8</span></td></tr>
+<tr><td class="num" id="LN890">890</td><td class="line"> <span class='comment'>* On other systems, the argument is "the number of low-order zero bits</span></td></tr>
+<tr><td class="num" id="LN891">891</td><td class="line"> <span class='comment'>* that the location counter must have after advancement."  So to</span></td></tr>
+<tr><td class="num" id="LN892">892</td><td class="line"> <span class='comment'>* align on an 8-byte boundary you'd say</span></td></tr>
+<tr><td class="num" id="LN893">893</td><td class="line"> <span class='comment'>*     .align 3</span></td></tr>
+<tr><td class="num" id="LN894">894</td><td class="line"> <span class='comment'>*</span></td></tr>
+<tr><td class="num" id="LN895">895</td><td class="line"> <span class='comment'>* The reason gas is written this way is that it's trying to mimick</span></td></tr>
+<tr><td class="num" id="LN896">896</td><td class="line"> <span class='comment'>* native assemblers for the various architectures it runs on.  gas</span></td></tr>
+<tr><td class="num" id="LN897">897</td><td class="line"> <span class='comment'>* provides other directives that work consistently across</span></td></tr>
+<tr><td class="num" id="LN898">898</td><td class="line"> <span class='comment'>* architectures, but of course we want to work on all arches with or</span></td></tr>
+<tr><td class="num" id="LN899">899</td><td class="line"> <span class='comment'>* without gas.  Hence this function.</span></td></tr>
+<tr><td class="num" id="LN900">900</td><td class="line"> <span class='comment'>*</span></td></tr>
+<tr><td class="num" id="LN901">901</td><td class="line"> <span class='comment'>*</span></td></tr>
+<tr><td class="num" id="LN902">902</td><td class="line"> <span class='comment'>*  Parameters:</span></td></tr>
+<tr><td class="num" id="LN903">903</td><td class="line"> <span class='comment'>*    align  --  the number of bytes to align to. Must be a power of 2.</span></td></tr>
+<tr><td class="num" id="LN904">904</td><td class="line"> <span class='comment'>*/</span></td></tr>
+<tr><td class="num" id="LN905">905</td><td class="line"><span class='keyword'>unsigned</span> <span class='keyword'>int</span> get_alignment(<span class='keyword'>unsigned</span> <span class='keyword'>int</span> align)</td></tr>
+<tr><td class="num" id="LN906">906</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN907">907</td><td class="line">    <span class='keyword'>unsigned</span> <span class='keyword'>int</span> n;</td></tr>
+<tr><td class="num" id="LN908">908</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN909">909</td><td class="line">    <span class='macro'>assert( !(align &amp; (align - 1)) )<span class='expansion'>((!(align &amp; (align - 1))) ? (void) (0) : __assert_fail ("!(align &amp; (align - 1))"<br>, "utils.c", 909, __PRETTY_FUNCTION__))</span></span>;</td></tr>
+<tr><td class="num" id="LN910">910</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN911">911</td><td class="line">    <span class='keyword'>switch</span>(target_cpu)</td></tr>
+<tr><td class="num" id="LN912">912</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN913">913</td><td class="line">    <span class='keyword'>case</span> CPU_x86:</td></tr>
+<tr><td class="num" id="LN914">914</td><td class="line">    <span class='keyword'>case</span> CPU_x86_64:</td></tr>
+<tr><td class="num" id="LN915">915</td><td class="line">        <span class='keyword'>if</span> (target_platform != PLATFORM_APPLE) <span class='keyword'>return</span> align;</td></tr>
+<tr><td class="num" id="LN916">916</td><td class="line">        <span class='comment'>/* fall through */</span></td></tr>
+<tr><td class="num" id="LN917">917</td><td class="line">    <span class='keyword'>case</span> CPU_POWERPC:</td></tr>
+<tr><td class="num" id="LN918">918</td><td class="line">    <span class='keyword'>case</span> CPU_ARM:</td></tr>
+<tr><td class="num" id="LN919">919</td><td class="line">    <span class='keyword'>case</span> CPU_ARM64:</td></tr>
+<tr><td class="num" id="LN920">920</td><td class="line">        n = 0;</td></tr>
+<tr><td class="num" id="LN921">921</td><td class="line">        <span class='keyword'>while</span> ((1u &lt;&lt; n) != align) n++;</td></tr>
+<tr><td class="num" id="LN922">922</td><td class="line">        <span class='keyword'>return</span> n;</td></tr>
+<tr><td class="num" id="LN923">923</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN924">924</td><td class="line">    <span class='comment'>/* unreached */</span></td></tr>
+<tr><td class="num" id="LN925">925</td><td class="line">    <span class='macro'>assert(0)<span class='expansion'>((0) ? (void) (0) : __assert_fail ("0", "utils.c", 925, __PRETTY_FUNCTION__<br>))</span></span>;</td></tr>
+<tr><td class="num" id="LN926">926</td><td class="line">    <span class='keyword'>return</span> 0;</td></tr>
+<tr><td class="num" id="LN927">927</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN928">928</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN929">929</td><td class="line"><span class='comment'>/* return the page size for the target CPU */</span></td></tr>
+<tr><td class="num" id="LN930">930</td><td class="line"><span class='keyword'>unsigned</span> <span class='keyword'>int</span> get_page_size(<span class='keyword'>void</span>)</td></tr>
+<tr><td class="num" id="LN931">931</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN932">932</td><td class="line">    <span class='keyword'>switch</span>(target_cpu)</td></tr>
+<tr><td class="num" id="LN933">933</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN934">934</td><td class="line">    <span class='keyword'>case</span> CPU_x86:     <span class='keyword'>return</span> 4096;</td></tr>
+<tr><td class="num" id="LN935">935</td><td class="line">    <span class='keyword'>case</span> CPU_x86_64:  <span class='keyword'>return</span> 4096;</td></tr>
+<tr><td class="num" id="LN936">936</td><td class="line">    <span class='keyword'>case</span> CPU_POWERPC: <span class='keyword'>return</span> 4096;</td></tr>
+<tr><td class="num" id="LN937">937</td><td class="line">    <span class='keyword'>case</span> CPU_ARM:     <span class='keyword'>return</span> 4096;</td></tr>
+<tr><td class="num" id="LN938">938</td><td class="line">    <span class='keyword'>case</span> CPU_ARM64:   <span class='keyword'>return</span> 4096;</td></tr>
+<tr><td class="num" id="LN939">939</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN940">940</td><td class="line">    <span class='comment'>/* unreached */</span></td></tr>
+<tr><td class="num" id="LN941">941</td><td class="line">    <span class='macro'>assert(0)<span class='expansion'>((0) ? (void) (0) : __assert_fail ("0", "utils.c", 941, __PRETTY_FUNCTION__<br>))</span></span>;</td></tr>
+<tr><td class="num" id="LN942">942</td><td class="line">    <span class='keyword'>return</span> 0;</td></tr>
+<tr><td class="num" id="LN943">943</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN944">944</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN945">945</td><td class="line"><span class='comment'>/* return the size of a pointer on the target CPU */</span></td></tr>
+<tr><td class="num" id="LN946">946</td><td class="line"><span class='keyword'>unsigned</span> <span class='keyword'>int</span> get_ptr_size(<span class='keyword'>void</span>)</td></tr>
+<tr><td class="num" id="LN947">947</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN948">948</td><td class="line">    <span class='keyword'>switch</span>(target_cpu)</td></tr>
+<tr><td class="num" id="LN949">949</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN950">950</td><td class="line">    <span class='keyword'>case</span> CPU_x86:</td></tr>
+<tr><td class="num" id="LN951">951</td><td class="line">    <span class='keyword'>case</span> CPU_POWERPC:</td></tr>
+<tr><td class="num" id="LN952">952</td><td class="line">    <span class='keyword'>case</span> CPU_ARM:</td></tr>
+<tr><td class="num" id="LN953">953</td><td class="line">        <span class='keyword'>return</span> 4;</td></tr>
+<tr><td class="num" id="LN954">954</td><td class="line">    <span class='keyword'>case</span> CPU_x86_64:</td></tr>
+<tr><td class="num" id="LN955">955</td><td class="line">    <span class='keyword'>case</span> CPU_ARM64:</td></tr>
+<tr><td class="num" id="LN956">956</td><td class="line">        <span class='keyword'>return</span> 8;</td></tr>
+<tr><td class="num" id="LN957">957</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN958">958</td><td class="line">    <span class='comment'>/* unreached */</span></td></tr>
+<tr><td class="num" id="LN959">959</td><td class="line">    <span class='macro'>assert(0)<span class='expansion'>((0) ? (void) (0) : __assert_fail ("0", "utils.c", 959, __PRETTY_FUNCTION__<br>))</span></span>;</td></tr>
+<tr><td class="num" id="LN960">960</td><td class="line">    <span class='keyword'>return</span> 0;</td></tr>
+<tr><td class="num" id="LN961">961</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN962">962</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN963">963</td><td class="line"><span class='comment'>/* return the total size in bytes of the arguments on the stack */</span></td></tr>
+<tr><td class="num" id="LN964">964</td><td class="line"><span class='keyword'>unsigned</span> <span class='keyword'>int</span> get_args_size( <span class='keyword'>const</span> ORDDEF *odp )</td></tr>
+<tr><td class="num" id="LN965">965</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN966">966</td><td class="line">    <span class='keyword'>int</span> i, size;</td></tr>
+<tr><td class="num" id="LN967">967</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN968">968</td><td class="line">    <span class='keyword'>for</span> (i = size = 0; i &lt; odp-&gt;u.func.nb_args; i++)</td></tr>
+<tr><td class="num" id="LN969">969</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN970">970</td><td class="line">        <span class='keyword'>switch</span> (odp-&gt;u.func.args[i])</td></tr>
+<tr><td class="num" id="LN971">971</td><td class="line">        {</td></tr>
+<tr><td class="num" id="LN972">972</td><td class="line">        <span class='keyword'>case</span> ARG_INT64:</td></tr>
+<tr><td class="num" id="LN973">973</td><td class="line">        <span class='keyword'>case</span> ARG_DOUBLE:</td></tr>
+<tr><td class="num" id="LN974">974</td><td class="line">            size += 8;</td></tr>
+<tr><td class="num" id="LN975">975</td><td class="line">            <span class='keyword'>break</span>;</td></tr>
+<tr><td class="num" id="LN976">976</td><td class="line">        <span class='keyword'>case</span> ARG_INT128:</td></tr>
+<tr><td class="num" id="LN977">977</td><td class="line">            <span class='comment'>/* int128 is passed as pointer on x86_64 */</span></td></tr>
+<tr><td class="num" id="LN978">978</td><td class="line">            <span class='keyword'>if</span> (target_cpu != CPU_x86_64)</td></tr>
+<tr><td class="num" id="LN979">979</td><td class="line">            {</td></tr>
+<tr><td class="num" id="LN980">980</td><td class="line">                size += 16;</td></tr>
+<tr><td class="num" id="LN981">981</td><td class="line">                <span class='keyword'>break</span>;</td></tr>
+<tr><td class="num" id="LN982">982</td><td class="line">            }</td></tr>
+<tr><td class="num" id="LN983">983</td><td class="line">            <span class='comment'>/* fall through */</span></td></tr>
+<tr><td class="num" id="LN984">984</td><td class="line">        <span class='keyword'>default</span>:</td></tr>
+<tr><td class="num" id="LN985">985</td><td class="line">            size += get_ptr_size();</td></tr>
+<tr><td class="num" id="LN986">986</td><td class="line">            <span class='keyword'>break</span>;</td></tr>
+<tr><td class="num" id="LN987">987</td><td class="line">        }</td></tr>
+<tr><td class="num" id="LN988">988</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN989">989</td><td class="line">    <span class='keyword'>return</span> size;</td></tr>
+<tr><td class="num" id="LN990">990</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN991">991</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN992">992</td><td class="line"><span class='comment'>/* return the assembly name for a C symbol */</span></td></tr>
+<tr><td class="num" id="LN993">993</td><td class="line"><span class='keyword'>const</span> <span class='keyword'>char</span> *asm_name( <span class='keyword'>const</span> <span class='keyword'>char</span> *sym )</td></tr>
+<tr><td class="num" id="LN994">994</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN995">995</td><td class="line">    <span class='keyword'>static</span> <span class='keyword'>char</span> *buffer;</td></tr>
+<tr><td class="num" id="LN996">996</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN997">997</td><td class="line">    <span class='keyword'>switch</span> (target_platform)</td></tr>
+<tr><td class="num" id="LN998">998</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN999">999</td><td class="line">    <span class='keyword'>case</span> PLATFORM_APPLE:</td></tr>
+<tr><td class="num" id="LN1000">1000</td><td class="line">    <span class='keyword'>case</span> PLATFORM_WINDOWS:</td></tr>
+<tr><td class="num" id="LN1001">1001</td><td class="line">        <span class='keyword'>if</span> (sym[0] == '.' &amp;&amp; sym[1] == 'L') <span class='keyword'>return</span> sym;</td></tr>
+<tr><td class="num" id="LN1002">1002</td><td class="line">        free( buffer );</td></tr>
+<tr><td class="num" id="LN1003">1003</td><td class="line">        buffer = strmake( <span class='string_literal'>"_%s"</span>, sym );</td></tr>
+<tr><td class="num" id="LN1004">1004</td><td class="line">        <span class='keyword'>return</span> buffer;</td></tr>
+<tr><td class="num" id="LN1005">1005</td><td class="line">    <span class='keyword'>default</span>:</td></tr>
+<tr><td class="num" id="LN1006">1006</td><td class="line">        <span class='keyword'>return</span> sym;</td></tr>
+<tr><td class="num" id="LN1007">1007</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN1008">1008</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN1009">1009</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN1010">1010</td><td class="line"><span class='comment'>/* return an assembly function declaration for a C function name */</span></td></tr>
+<tr><td class="num" id="LN1011">1011</td><td class="line"><span class='keyword'>const</span> <span class='keyword'>char</span> *func_declaration( <span class='keyword'>const</span> <span class='keyword'>char</span> *func )</td></tr>
+<tr><td class="num" id="LN1012">1012</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN1013">1013</td><td class="line">    <span class='keyword'>static</span> <span class='keyword'>char</span> *buffer;</td></tr>
+<tr><td class="num" id="LN1014">1014</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN1015">1015</td><td class="line">    <span class='keyword'>switch</span> (target_platform)</td></tr>
+<tr><td class="num" id="LN1016">1016</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN1017">1017</td><td class="line">    <span class='keyword'>case</span> PLATFORM_APPLE:</td></tr>
+<tr><td class="num" id="LN1018">1018</td><td class="line">        <span class='keyword'>return</span> <span class='string_literal'>""</span>;</td></tr>
+<tr><td class="num" id="LN1019">1019</td><td class="line">    <span class='keyword'>case</span> PLATFORM_WINDOWS:</td></tr>
+<tr><td class="num" id="LN1020">1020</td><td class="line">        free( buffer );</td></tr>
+<tr><td class="num" id="LN1021">1021</td><td class="line">        buffer = strmake( <span class='string_literal'>".def _%s; .scl 2; .type 32; .endef"</span>, func );</td></tr>
+<tr><td class="num" id="LN1022">1022</td><td class="line">        <span class='keyword'>break</span>;</td></tr>
+<tr><td class="num" id="LN1023">1023</td><td class="line">    <span class='keyword'>default</span>:</td></tr>
+<tr><td class="num" id="LN1024">1024</td><td class="line">        free( buffer );</td></tr>
+<tr><td class="num" id="LN1025">1025</td><td class="line">        <span class='keyword'>switch</span>(target_cpu)</td></tr>
+<tr><td class="num" id="LN1026">1026</td><td class="line">        {</td></tr>
+<tr><td class="num" id="LN1027">1027</td><td class="line">        <span class='keyword'>case</span> CPU_ARM:</td></tr>
+<tr><td class="num" id="LN1028">1028</td><td class="line">        <span class='keyword'>case</span> CPU_ARM64:</td></tr>
+<tr><td class="num" id="LN1029">1029</td><td class="line">            buffer = strmake( <span class='string_literal'>".type %s,%%function"</span>, func );</td></tr>
+<tr><td class="num" id="LN1030">1030</td><td class="line">            <span class='keyword'>break</span>;</td></tr>
+<tr><td class="num" id="LN1031">1031</td><td class="line">        <span class='keyword'>default</span>:</td></tr>
+<tr><td class="num" id="LN1032">1032</td><td class="line">            buffer = strmake( <span class='string_literal'>".type %s,@function"</span>, func );</td></tr>
+<tr><td class="num" id="LN1033">1033</td><td class="line">            <span class='keyword'>break</span>;</td></tr>
+<tr><td class="num" id="LN1034">1034</td><td class="line">        }</td></tr>
+<tr><td class="num" id="LN1035">1035</td><td class="line">        <span class='keyword'>break</span>;</td></tr>
+<tr><td class="num" id="LN1036">1036</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN1037">1037</td><td class="line">    <span class='keyword'>return</span> buffer;</td></tr>
+<tr><td class="num" id="LN1038">1038</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN1039">1039</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN1040">1040</td><td class="line"><span class='comment'>/* output a size declaration for an assembly function */</span></td></tr>
+<tr><td class="num" id="LN1041">1041</td><td class="line"><span class='keyword'>void</span> output_function_size( <span class='keyword'>const</span> <span class='keyword'>char</span> *name )</td></tr>
+<tr><td class="num" id="LN1042">1042</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN1043">1043</td><td class="line">    <span class='keyword'>switch</span> (target_platform)</td></tr>
+<tr><td class="num" id="LN1044">1044</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN1045">1045</td><td class="line">    <span class='keyword'>case</span> PLATFORM_APPLE:</td></tr>
+<tr><td class="num" id="LN1046">1046</td><td class="line">    <span class='keyword'>case</span> PLATFORM_WINDOWS:</td></tr>
+<tr><td class="num" id="LN1047">1047</td><td class="line">        <span class='keyword'>break</span>;</td></tr>
+<tr><td class="num" id="LN1048">1048</td><td class="line">    <span class='keyword'>default</span>:</td></tr>
+<tr><td class="num" id="LN1049">1049</td><td class="line">        output( <span class='string_literal'>"\t.size %s, .-%s\n"</span>, name, name );</td></tr>
+<tr><td class="num" id="LN1050">1050</td><td class="line">        <span class='keyword'>break</span>;</td></tr>
+<tr><td class="num" id="LN1051">1051</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN1052">1052</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN1053">1053</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN1054">1054</td><td class="line"><span class='comment'>/* output a .cfi directive */</span></td></tr>
+<tr><td class="num" id="LN1055">1055</td><td class="line"><span class='keyword'>void</span> output_cfi( <span class='keyword'>const</span> <span class='keyword'>char</span> *format, ... )</td></tr>
+<tr><td class="num" id="LN1056">1056</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN1057">1057</td><td class="line">    va_list valist;</td></tr>
+<tr><td class="num" id="LN1058">1058</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN1059">1059</td><td class="line">    <span class='keyword'>if</span> (!unwind_tables) <span class='keyword'>return</span>;</td></tr>
+<tr><td class="num" id="LN1060">1060</td><td class="line">    <span class='macro'>va_start( valist, format )<span class='expansion'>__builtin_va_start(valist, format)</span></span>;</td></tr>
+<tr><td class="num" id="LN1061">1061</td><td class="line">    fputc( '\t', output_file );</td></tr>
+<tr><td class="num" id="LN1062">1062</td><td class="line">    vfprintf( output_file, format, valist );</td></tr>
+<tr><td class="num" id="LN1063">1063</td><td class="line">    fputc( '\n', output_file );</td></tr>
+<tr><td class="num" id="LN1064">1064</td><td class="line">    <span class='macro'>va_end( valist )<span class='expansion'>__builtin_va_end(valist)</span></span>;</td></tr>
+<tr><td class="num" id="LN1065">1065</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN1066">1066</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN1067">1067</td><td class="line"><span class='comment'>/* output the GNU note for non-exec stack */</span></td></tr>
+<tr><td class="num" id="LN1068">1068</td><td class="line"><span class='keyword'>void</span> output_gnu_stack_note(<span class='keyword'>void</span>)</td></tr>
+<tr><td class="num" id="LN1069">1069</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN1070">1070</td><td class="line">    <span class='keyword'>switch</span> (target_platform)</td></tr>
+<tr><td class="num" id="LN1071">1071</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN1072">1072</td><td class="line">    <span class='keyword'>case</span> PLATFORM_WINDOWS:</td></tr>
+<tr><td class="num" id="LN1073">1073</td><td class="line">    <span class='keyword'>case</span> PLATFORM_APPLE:</td></tr>
+<tr><td class="num" id="LN1074">1074</td><td class="line">        <span class='keyword'>break</span>;</td></tr>
+<tr><td class="num" id="LN1075">1075</td><td class="line">    <span class='keyword'>default</span>:</td></tr>
+<tr><td class="num" id="LN1076">1076</td><td class="line">        <span class='keyword'>switch</span>(target_cpu)</td></tr>
+<tr><td class="num" id="LN1077">1077</td><td class="line">        {</td></tr>
+<tr><td class="num" id="LN1078">1078</td><td class="line">        <span class='keyword'>case</span> CPU_ARM:</td></tr>
+<tr><td class="num" id="LN1079">1079</td><td class="line">        <span class='keyword'>case</span> CPU_ARM64:</td></tr>
+<tr><td class="num" id="LN1080">1080</td><td class="line">            output( <span class='string_literal'>"\t.section .note.GNU-stack,\"\",%%progbits\n"</span> );</td></tr>
+<tr><td class="num" id="LN1081">1081</td><td class="line">            <span class='keyword'>break</span>;</td></tr>
+<tr><td class="num" id="LN1082">1082</td><td class="line">        <span class='keyword'>default</span>:</td></tr>
+<tr><td class="num" id="LN1083">1083</td><td class="line">            output( <span class='string_literal'>"\t.section .note.GNU-stack,\"\",@progbits\n"</span> );</td></tr>
+<tr><td class="num" id="LN1084">1084</td><td class="line">            <span class='keyword'>break</span>;</td></tr>
+<tr><td class="num" id="LN1085">1085</td><td class="line">        }</td></tr>
+<tr><td class="num" id="LN1086">1086</td><td class="line">        <span class='keyword'>break</span>;</td></tr>
+<tr><td class="num" id="LN1087">1087</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN1088">1088</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN1089">1089</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN1090">1090</td><td class="line"><span class='comment'>/* return a global symbol declaration for an assembly symbol */</span></td></tr>
+<tr><td class="num" id="LN1091">1091</td><td class="line"><span class='keyword'>const</span> <span class='keyword'>char</span> *asm_globl( <span class='keyword'>const</span> <span class='keyword'>char</span> *func )</td></tr>
+<tr><td class="num" id="LN1092">1092</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN1093">1093</td><td class="line">    <span class='keyword'>static</span> <span class='keyword'>char</span> *buffer;</td></tr>
+<tr><td class="num" id="LN1094">1094</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN1095">1095</td><td class="line">    free( buffer );</td></tr>
+<tr><td class="num" id="LN1096">1096</td><td class="line">    <span class='keyword'>switch</span> (target_platform)</td></tr>
+<tr><td class="num" id="LN1097">1097</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN1098">1098</td><td class="line">    <span class='keyword'>case</span> PLATFORM_APPLE:</td></tr>
+<tr><td class="num" id="LN1099">1099</td><td class="line">        buffer = strmake( <span class='string_literal'>"\t.globl _%s\n\t.private_extern _%s\n_%s:"</span>, func, func, func );</td></tr>
+<tr><td class="num" id="LN1100">1100</td><td class="line">        <span class='keyword'>break</span>;</td></tr>
+<tr><td class="num" id="LN1101">1101</td><td class="line">    <span class='keyword'>case</span> PLATFORM_WINDOWS:</td></tr>
+<tr><td class="num" id="LN1102">1102</td><td class="line">        buffer = strmake( <span class='string_literal'>"\t.globl _%s\n_%s:"</span>, func, func );</td></tr>
+<tr><td class="num" id="LN1103">1103</td><td class="line">        <span class='keyword'>break</span>;</td></tr>
+<tr><td class="num" id="LN1104">1104</td><td class="line">    <span class='keyword'>default</span>:</td></tr>
+<tr><td class="num" id="LN1105">1105</td><td class="line">        buffer = strmake( <span class='string_literal'>"\t.globl %s\n\t.hidden %s\n%s:"</span>, func, func, func );</td></tr>
+<tr><td class="num" id="LN1106">1106</td><td class="line">        <span class='keyword'>break</span>;</td></tr>
+<tr><td class="num" id="LN1107">1107</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN1108">1108</td><td class="line">    <span class='keyword'>return</span> buffer;</td></tr>
+<tr><td class="num" id="LN1109">1109</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN1110">1110</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN1111">1111</td><td class="line"><span class='keyword'>const</span> <span class='keyword'>char</span> *get_asm_ptr_keyword(<span class='keyword'>void</span>)</td></tr>
+<tr><td class="num" id="LN1112">1112</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN1113">1113</td><td class="line">    <span class='keyword'>switch</span>(get_ptr_size())</td></tr>
+<tr><td class="num" id="LN1114">1114</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN1115">1115</td><td class="line">    <span class='keyword'>case</span> 4: <span class='keyword'>return</span> <span class='string_literal'>".long"</span>;</td></tr>
+<tr><td class="num" id="LN1116">1116</td><td class="line">    <span class='keyword'>case</span> 8: <span class='keyword'>return</span> <span class='string_literal'>".quad"</span>;</td></tr>
+<tr><td class="num" id="LN1117">1117</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN1118">1118</td><td class="line">    <span class='macro'>assert(0)<span class='expansion'>((0) ? (void) (0) : __assert_fail ("0", "utils.c", 1118, __PRETTY_FUNCTION__<br>))</span></span>;</td></tr>
+<tr><td class="num" id="LN1119">1119</td><td class="line">    <span class='keyword'>return</span> <span class='macro'>NULL<span class='expansion'>((void*)0)</span></span>;</td></tr>
+<tr><td class="num" id="LN1120">1120</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN1121">1121</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN1122">1122</td><td class="line"><span class='keyword'>const</span> <span class='keyword'>char</span> *get_asm_string_keyword(<span class='keyword'>void</span>)</td></tr>
+<tr><td class="num" id="LN1123">1123</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN1124">1124</td><td class="line">    <span class='keyword'>switch</span> (target_platform)</td></tr>
+<tr><td class="num" id="LN1125">1125</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN1126">1126</td><td class="line">    <span class='keyword'>case</span> PLATFORM_APPLE:</td></tr>
+<tr><td class="num" id="LN1127">1127</td><td class="line">        <span class='keyword'>return</span> <span class='string_literal'>".asciz"</span>;</td></tr>
+<tr><td class="num" id="LN1128">1128</td><td class="line">    <span class='keyword'>default</span>:</td></tr>
+<tr><td class="num" id="LN1129">1129</td><td class="line">        <span class='keyword'>return</span> <span class='string_literal'>".string"</span>;</td></tr>
+<tr><td class="num" id="LN1130">1130</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN1131">1131</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN1132">1132</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN1133">1133</td><td class="line"><span class='keyword'>const</span> <span class='keyword'>char</span> *get_asm_rodata_section(<span class='keyword'>void</span>)</td></tr>
+<tr><td class="num" id="LN1134">1134</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN1135">1135</td><td class="line">    <span class='keyword'>switch</span> (target_platform)</td></tr>
+<tr><td class="num" id="LN1136">1136</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN1137">1137</td><td class="line">    <span class='keyword'>case</span> PLATFORM_APPLE: <span class='keyword'>return</span> <span class='string_literal'>".const"</span>;</td></tr>
+<tr><td class="num" id="LN1138">1138</td><td class="line">    <span class='keyword'>default</span>:             <span class='keyword'>return</span> <span class='string_literal'>".section .rodata"</span>;</td></tr>
+<tr><td class="num" id="LN1139">1139</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN1140">1140</td><td class="line">}</td></tr>
+<tr><td class="num" id="LN1141">1141</td><td class="line"> </td></tr>
+<tr><td class="num" id="LN1142">1142</td><td class="line"><span class='keyword'>const</span> <span class='keyword'>char</span> *get_asm_string_section(<span class='keyword'>void</span>)</td></tr>
+<tr><td class="num" id="LN1143">1143</td><td class="line">{</td></tr>
+<tr><td class="num" id="LN1144">1144</td><td class="line">    <span class='keyword'>switch</span> (target_platform)</td></tr>
+<tr><td class="num" id="LN1145">1145</td><td class="line">    {</td></tr>
+<tr><td class="num" id="LN1146">1146</td><td class="line">    <span class='keyword'>case</span> PLATFORM_APPLE: <span class='keyword'>return</span> <span class='string_literal'>".cstring"</span>;</td></tr>
+<tr><td class="num" id="LN1147">1147</td><td class="line">    <span class='keyword'>default</span>:             <span class='keyword'>return</span> <span class='string_literal'>".section .rodata"</span>;</td></tr>
+<tr><td class="num" id="LN1148">1148</td><td class="line">    }</td></tr>
+<tr><td class="num" id="LN1149">1149</td><td class="line">}</td></tr>
+</table></body></html>
