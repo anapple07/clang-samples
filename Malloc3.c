@@ -1,7 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+void test() {
+    int *p = malloc(1);
+    if (p)
+    return; // warn: memory is never released
+}
+
 int main() {
-    int a[] = { 1 };
-    free(a); // warn: argument is not allocated by malloc
+    test();
 }
