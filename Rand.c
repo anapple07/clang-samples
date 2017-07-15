@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int main() {
+int test() {
     random(); // warn
-    return 0;
 }
 
-//no bug...
+int main() {
+    test();
+}
