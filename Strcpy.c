@@ -1,9 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int main() {
+void test() {
     char x[4];
     char *y = "abcd";
 
-    strcpy(x, y); // warn)
+    strcpy(x, y); // warn
+}
+
+int main() {
+    test();
 }
