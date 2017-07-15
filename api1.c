@@ -1,10 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void test(const char *path) {
-  int fd = open(path, O_CREAT);
-    // warn: call to 'open' requires a third argument when the
-    // 'O_CREAT' flag is set
+void f();
+
+void test() {
+    pthread_once_t pred = {0x30B1BCBA, {0}};
+    pthread_once(&pred, f);
 }
 
 int main() {
