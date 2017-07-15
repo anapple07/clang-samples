@@ -1,8 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+void test() {
+    int a[] = { 1 };
+    free(a); // warn: argument is not allocated by malloc)
+}
+
 int main() {
-    int *p = malloc(sizeof(char));
-    p = p - 1;
-    free(p); // warn: argument to free() is offset by -4 bytes
+    test();
 }
