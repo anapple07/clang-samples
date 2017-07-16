@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int test() {
-    random(); // warn
+void test() {
+    rand(); // warn
 }
 
 int main() {
